@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Popular Banco — Checklist de Veículos</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">🚗</div>
+    Setup Inicial
+  </div>
+  <div class="navbar-actions">
+    <a href="login.html" class="btn btn-ghost btn-sm">🔐 Login</a>
+    <a href="../index.html" class="btn btn-ghost btn-sm">🏠 Início</a>
+  </div>
+</nav>
+
+<main style="max-width:600px;margin:60px auto;padding:0 16px">
+  <div class="card">
+    <div class="card-header">
+      <h2>🌱 Popular Banco de Dados</h2>
+    </div>
+    <div class="card-body">
+      <p style="font-size:14px;color:var(--cor-texto-2);margin-bottom:20px;line-height:1.7">
+        Esta página popula o Firebase com os <strong>25 itens do checklist</strong> e as <strong>2 seções</strong>
+        baseados no modelo de inspeção utilizado. Execute esta ação apenas uma vez, após configurar o Firebase.
+      </p>
+
+      <div style="
+        background:var(--cor-alerta-dim);
+        border:1px solid var(--cor-alerta);
+        border-radius:var(--radius-sm);
+        padding:12px 16px;
+        font-size:13px;
+        color:var(--cor-alerta);
+        margin-bottom:20px
+      ">
+        ⚠️ <strong>Importante:</strong> Você precisa estar logado como administrador para executar esta ação.
+        Faça login primeiro, depois volte a esta página.
+      </div>
+
+      <div id="seed-status" style="font-size:14px;color:var(--cor-texto-2);margin-bottom:16px">
+        Verificando autenticação...
+      </div>
+
+      <button id="btn-seed" class="btn btn-primary btn-lg" style="width:100%" disabled>
+        🌱 Popular Banco de Dados
+      </button>
+
+      <div id="seed-resultado" style="margin-top:20px;font-size:14px;line-height:1.7"></div>
+
+      <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--cor-borda)">
+        <h3 style="font-size:14px;font-weight:600;margin-bottom:12px">O que será criado:</h3>
+        <ul style="font-size:13px;color:var(--cor-texto-2);list-style:disc;padding-left:20px;line-height:2">
+          <li>Seção 1: <strong>Inspeção Externa e Documentação</strong> (itens 1–16)</li>
+          <li>Seção 2: <strong>Cabine e Equipamentos Internos</strong> (itens 17–25)</li>
+          <li>11 itens impeditivos (reprovam o veículo se não conformes)</li>
+          <li>3 itens com opção "Não se Aplica"</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast-container"></div>
+<script type="module" src="../js/seed.js"></script>
+</body>
+</html>

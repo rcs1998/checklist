@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Admin — Checklist de Veículos</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">🚗</div>
+    Checklist de Veículos
+  </div>
+  <div class="navbar-actions">
+    <span id="user-email" style="font-size:13px;color:var(--cor-texto-3)"></span>
+    <a href="../index.html" class="btn btn-ghost btn-sm">📋 Checklist</a>
+    <button id="btn-logout" class="btn btn-danger btn-sm">Sair</button>
+  </div>
+</nav>
+
+<main class="page-admin">
+
+  <!-- Cabeçalho -->
+  <div class="page-header">
+    <div class="page-header-text">
+      <h1>⚙️ Painel Administrativo</h1>
+      <p>Gerencie resultados, placas e itens do checklist.</p>
+    </div>
+    <a href="../index.html" class="btn btn-primary">
+      ➕ Novo Checklist
+    </a>
+  </div>
+
+  <!-- Estatísticas -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Total de Inspeções</div>
+      <div class="stat-valor" id="stat-total-val">—</div>
+    </div>
+    <div class="stat-card aprovado">
+      <div class="stat-label">Aprovados</div>
+      <div class="stat-valor" id="stat-aprovado-val">—</div>
+    </div>
+    <div class="stat-card reprovado">
+      <div class="stat-label">Reprovados</div>
+      <div class="stat-valor" id="stat-reprovado-val">—</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="tab-historico">📊 Resultados</button>
+    <button class="tab-btn" data-tab="tab-placas">🚗 Placas</button>
+    <button class="tab-btn" data-tab="tab-itens">📋 Itens do Checklist</button>
+  </div>
+
+  <!-- ===== TAB: HISTÓRICO ===== -->
+  <div id="tab-historico" class="tab-content active">
+    <div class="filtros-wrap">
+      <input type="text" id="filtro-busca" class="form-control" placeholder="🔍 Buscar motorista ou placa...">
+      <input type="text" id="filtro-placa-hist" class="form-control" placeholder="Filtrar por placa..." style="max-width:180px">
+      <select id="filtro-resultado" class="form-control" style="max-width:180px">
+        <option value="">Todos os resultados</option>
+        <option value="aprovado">✅ Aprovados</option>
+        <option value="reprovado">❌ Reprovados</option>
+      </select>
+    </div>
+
+    <div id="hist-loading" class="loading-state">
+      <div class="spinner"></div>
+      <span>Carregando inspeções...</span>
+    </div>
+
+    <div id="hist-empty" class="empty-state hidden">
+      <div class="empty-icon">📭</div>
+      <p>Nenhum checklist encontrado com os filtros aplicados.</p>
+    </div>
+
+    <div id="hist-lista"></div>
+  </div>
+
+  <!-- ===== TAB: PLACAS ===== -->
+  <div id="tab-placas" class="tab-content">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <button id="btn-add-placa" class="btn btn-primary">➕ Nova Placa</button>
+    </div>
+    <div id="lista-placas">
+      <div class="loading-state"><div class="spinner"></div><span>Carregando...</span></div>
+    </div>
+  </div>
+
+  <!-- ===== TAB: ITENS ===== -->
+  <div id="tab-itens" class="tab-content">
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <button id="btn-add-item" class="btn btn-primary">➕ Novo Item</button>
+    </div>
+    <div id="lista-itens-config">
+      <div class="loading-state"><div class="spinner"></div><span>Carregando...</span></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ========== MODAL: DETALHE DO CHECKLIST ========== -->
+<div id="modal-detalhe" class="modal-backdrop hidden">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <h3>📋 Detalhe da Inspeção</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- Resumo -->
+      <div style="
+        display:grid;grid-template-columns:1fr 1fr;gap:12px;
+        background:var(--cor-surface-2);border-radius:var(--radius-md);
+        padding:16px;margin-bottom:20px
+      ">
+        <div>
+          <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Placa</div>
+          <div id="det-placa" style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;letter-spacing:.08em"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Resultado</div>
+          <div id="det-resultado"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Motorista</div>
+          <div id="det-motorista" style="font-size:14px;font-weight:600"></div>
+        </div>
+        <div>
+          <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Data e Hora</div>
+          <div id="det-datahora" style="font-size:14px;font-family:'JetBrains Mono',monospace"></div>
+        </div>
+        <div style="grid-column:1/-1">
+          <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Conformidade</div>
+          <div id="det-percentual" style="font-size:14px;font-weight:600"></div>
+        </div>
+      </div>
+
+      <!-- Itens -->
+      <div id="det-itens"></div>
+    </div>
+    <div class="modal-footer">
+      <button id="btn-det-pdf" class="btn btn-ghost">📄 Exportar PDF</button>
+      <button class="btn btn-primary modal-close">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: PLACA ========== -->
+<div id="modal-placa" class="modal-backdrop hidden">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modal-placa-titulo">Nova Placa</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="placa-id">
+      <div class="form-group">
+        <label class="form-label" for="placa-input">Placa <span class="req">*</span></label>
+        <input
+          type="text"
+          id="placa-input"
+          class="form-control"
+          placeholder="ABC1234"
+          maxlength="8"
+          style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em"
+        >
+        <span class="form-hint">Formato: ABC1234 (antiga) ou ABC1D23 (Mercosul)</span>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost modal-close">Cancelar</button>
+      <button id="btn-salvar-placa" class="btn btn-primary">Salvar Placa</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: ITEM DO CHECKLIST ========== -->
+<div id="modal-item" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-header">
+      <h3 id="modal-item-titulo">Novo Item</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="item-id">
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-group">
+          <label class="form-label" for="item-numero">Número <span class="req">*</span></label>
+          <input type="number" id="item-numero" class="form-control" placeholder="Ex: 26" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="item-secao">Seção <span class="req">*</span></label>
+          <select id="item-secao" class="form-control">
+            <!-- Preenchido via JS -->
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="item-nome">Nome do Item <span class="req">*</span></label>
+        <input type="text" id="item-nome" class="form-control" placeholder="Ex: Nível de óleo do motor">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="item-param">Parâmetro / Critério <span class="req">*</span></label>
+        <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado e os critérios de conformidade..."></textarea>
+      </div>
+
+      <div style="display:flex;gap:24px;flex-wrap:wrap">
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="item-impeditivo">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">⛔ Item Impeditivo</span>
+        </div>
+        <div class="toggle-wrap">
+          <label class="toggle">
+            <input type="checkbox" id="item-na">
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label">🚫 Permite "Não se Aplica"</span>
+        </div>
+      </div>
+
+      <div style="
+        margin-top:16px;
+        padding:12px;
+        background:var(--cor-fundo);
+        border-radius:var(--radius-sm);
+        font-size:12px;
+        color:var(--cor-texto-3);
+        border:1px solid var(--cor-borda)
+      ">
+        ⛔ <strong>Impeditivo:</strong> se marcado como "Não Conforme", o veículo será automaticamente reprovado.<br>
+        🚫 <strong>Não se Aplica:</strong> permite que o motorista marque N/A para este item.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost modal-close">Cancelar</button>
+      <button id="btn-salvar-item" class="btn btn-primary">Salvar Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script type="module" src="../js/admin.js"></script>
+</body>
+</html>

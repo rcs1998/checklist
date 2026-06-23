@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Checklist de Veículos</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <div class="navbar-brand">
+    <div class="brand-icon">🚗</div>
+    Checklist de Veículos
+  </div>
+  <div class="navbar-actions">
+    <a id="acesso-admin" href="pages/admin.html" class="btn btn-ghost btn-sm hidden">
+      ⚙️ Painel Admin
+    </a>
+    <a href="pages/login.html" class="btn btn-ghost btn-sm">🔐 Login</a>
+  </div>
+</nav>
+
+<!-- CONTEÚDO PRINCIPAL -->
+<main class="page-checklist">
+
+  <!-- ===== SEÇÃO 1: INFORMAÇÕES DO VEÍCULO ===== -->
+  <section id="secao-info" class="secao-ativa">
+    <h1>Inspeção do Veículo</h1>
+    <p class="subtitle">Preencha os dados abaixo para iniciar o checklist de inspeção.</p>
+
+    <div id="form-info">
+      <div class="card">
+        <div class="card-header">
+          <h2>📋 Dados da Inspeção</h2>
+        </div>
+        <div class="card-body">
+          <div class="checklist-info-grid">
+            <div class="form-group">
+              <label class="form-label" for="input-placa">Placa do Veículo <span class="req">*</span></label>
+              <input
+                type="text"
+                id="input-placa"
+                class="form-control"
+                placeholder="ABC1234 ou ABC1D23"
+                maxlength="8"
+                autocomplete="off"
+                style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.08em;font-size:16px"
+              >
+              <span class="form-error" id="erro-placa"></span>
+              <span class="form-hint">A placa deve estar previamente cadastrada no sistema.</span>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="input-motorista">Nome do Motorista <span class="req">*</span></label>
+              <input
+                type="text"
+                id="input-motorista"
+                class="form-control"
+                placeholder="Nome completo"
+                autocomplete="name"
+              >
+              <span class="form-error">Informe o nome do motorista.</span>
+            </div>
+          </div>
+
+          <button id="btn-iniciar" class="btn btn-primary btn-lg" style="width:100%">
+            🚀 Iniciar Checklist
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== SEÇÃO 2: FORMULÁRIO DE CHECKLIST ===== -->
+  <section id="secao-form" class="hidden">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 style="margin-bottom:4px">Inspeção</h1>
+        <p class="subtitle" style="margin-bottom:0">Avalie cada item como <strong style="color:var(--cor-aprovado)">Conforme</strong> ou <strong style="color:var(--cor-reprovado)">Não Conforme</strong>.</p>
+      </div>
+      <div
+        id="placa-badge"
+        style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;background:var(--cor-surface);border:2px solid var(--cor-borda);padding:8px 20px;border-radius:8px;letter-spacing:.08em"
+      ></div>
+    </div>
+
+    <!-- Lista de itens gerada pelo JS -->
+    <div id="lista-itens"></div>
+
+    <!-- Botão enviar -->
+    <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--cor-borda)">
+      <button id="btn-enviar" class="btn btn-primary btn-lg" style="width:100%">
+        ✅ Enviar Checklist
+      </button>
+      <p style="text-align:center;font-size:13px;color:var(--cor-texto-3);margin-top:10px">
+        Todos os itens precisam ser respondidos antes de enviar.
+      </p>
+    </div>
+  </section>
+
+  <!-- ===== SEÇÃO 3: RESULTADO ===== -->
+  <section id="secao-resultado" class="hidden">
+    <div id="resultado-banner" class="resultado-banner">
+      <div id="resultado-icone" class="resultado-icone"></div>
+      <div id="resultado-titulo" class="resultado-titulo"></div>
+      <div class="resultado-placa" id="resultado-placa"></div>
+      <div class="resultado-info">
+        <div class="resultado-info-item">
+          <span class="label">Motorista</span>
+          <span class="valor" id="resultado-motorista"></span>
+        </div>
+        <div class="resultado-info-item">
+          <span class="label">Data e Hora</span>
+          <span class="valor" id="resultado-datahora"></span>
+        </div>
+        <div class="resultado-info-item">
+          <span class="label">Conformidade</span>
+          <span class="valor" id="resultado-percentual"></span>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
+      <button id="btn-pdf" class="btn btn-ghost" style="flex:1">
+        📄 Exportar PDF
+      </button>
+      <button id="btn-novo" class="btn btn-primary" style="flex:1">
+        🔄 Novo Checklist
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<script type="module">
+  // Sincronizar placa no badge ao digitar
+  document.getElementById('input-placa').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+    const badge = document.getElementById('placa-badge');
+    if (badge) badge.textContent = this.value || '—';
+  });
+</script>
+<script type="module" src="js/index.js"></script>
+</body>
+</html>
