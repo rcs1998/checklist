@@ -1,14 +1,12 @@
 // ============================================================
 // CONFIGURAÇÃO DO FIREBASE
 // ============================================================
-// INSTRUÇÕES DE CONFIGURAÇÃO:
-// 1. Acesse https://console.firebase.google.com/
-// 2. Clique em "Adicionar projeto" e siga os passos
-// 3. No projeto criado, clique em "Adicionar app" > ícone Web (</>)
-// 4. Registre o app e copie as credenciais abaixo
-// 5. Em "Authentication" > "Sign-in method" > ative "E-mail/senha"
-// 6. Em "Firestore Database" > "Criar banco de dados" > modo produção
-// 7. Em "Firestore Database" > "Regras" cole as regras abaixo:
+// INSTRUÇÕES:
+// Substitua os valores abaixo pelas credenciais do seu projeto.
+// Acesse: https://console.firebase.google.com/
+// Projeto → Configurações → Seus apps → SDK de configuração
+//
+// REGRAS DO FIRESTORE (cole em Firestore → Regras):
 //
 // rules_version = '2';
 // service cloud.firestore {
@@ -26,13 +24,17 @@
 //       allow read: if true;
 //       allow write: if request.auth != null;
 //     }
-//     match /config/{doc} {
-//       allow read: if request.auth != null;
+//     match /secoes/{doc} {
+//       allow read: if true;
 //       allow write: if request.auth != null;
 //     }
 //   }
 // }
 // ============================================================
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCdoK1l5S9JcNUtF6jBpXvEWSvp4TtshAk",
@@ -43,13 +45,8 @@ const firebaseConfig = {
   appId: "1:96243176239:web:5afc0e6b6c2ac42ee1c7da"
 };
 
-// Importações via CDN (usadas nos HTML files via type="module")
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+const app  = initializeApp(firebaseConfig);
+const db   = getFirestore(app);
 const auth = getAuth(app);
 
 export { app, db, auth };
