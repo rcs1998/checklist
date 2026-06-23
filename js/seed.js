@@ -13,10 +13,17 @@ onAuthStateChanged(auth, (user) => {
   if (!user) {
     status.textContent = '⚠️ Você precisa estar logado para popular o banco.';
     status.style.color = 'var(--cor-alerta)';
-    btnSeed.disabled = true;
+    if (btnSeed) {
+      btnSeed.disabled = true;
+      btnSeed.textContent = '🔒 Faça login para continuar';
+    }
   } else {
     status.textContent = `✅ Logado como ${user.email}. Pronto para popular o banco.`;
     status.style.color = 'var(--cor-aprovado)';
+    if (btnSeed) {
+      btnSeed.disabled = false;
+      btnSeed.textContent = '🌱 Popular Banco de Dados';
+    }
   }
 });
 
@@ -45,6 +52,6 @@ btnSeed?.addEventListener('click', async () => {
     resultado.innerHTML = `<p style="color:var(--cor-reprovado)">❌ Erro: ${e.message}</p>`;
   } finally {
     btnSeed.disabled = false;
-    btnSeed.textContent = 'Popular Banco de Dados';
+    btnSeed.textContent = '🌱 Popular Banco de Dados';
   }
 });
