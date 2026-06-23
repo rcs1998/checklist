@@ -1,12 +1,17 @@
 // ============================================================
-// ADMIN.JS — Resultados, Placas e Configuração de Itens
+// ADMIN.JS — Resultados, Placas, Itens e Usuários
 // ============================================================
-import { db, auth } from "./firebase-config.js";
+import { db, auth, app } from "./firebase-config.js";
 import {
   collection, getDocs, addDoc, updateDoc, deleteDoc,
-  doc, query, where, orderBy, onSnapshot, serverTimestamp, getDoc
+  doc, query, where, orderBy, serverTimestamp, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import {
+  onAuthStateChanged,
+  sendPasswordResetEmail,
+  createUserWithEmailAndPassword,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   toast, abrirModal, fecharModal, confirmar,
   formatarDataHora, normalizarPlaca, validarPlaca,
@@ -18,13 +23,16 @@ let secoes = [];
 let itens  = [];
 let placas = [];
 let checklists = [];
+let usuarios = [];
 let checklistDetalhe = null;
+let usuarioAtual = null;
 
 // ---------- Guard de autenticação ----------
 onAuthStateChanged(auth, (user) => {
   if (!user) {
     window.location.href = 'login.html';
   } else {
+    usuarioAtual = user;
     document.getElementById('user-email').textContent = user.email;
     init();
   }
@@ -32,9 +40,7 @@ onAuthStateChanged(auth, (user) => {
 
 // ---------- Logout ----------
 document.getElementById('btn-logout')?.addEventListener('click', () => {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js").then(({ signOut }) => {
-    signOut(auth).then(() => window.location.href = 'login.html');
-  });
+  signOut(auth).then(() => window.location.href = 'login.html');
 });
 
 // ---------- Tabs ----------
@@ -50,7 +56,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // ---------- Inicialização ----------
 async function init() {
   await Promise.all([carregarSecoes(), carregarItens(), carregarPlacas()]);
-  await carregarChecklists();
+  await Promise.all([carregarChecklists(), carregarUsuarios()]);
   renderizarEstatisticas();
 }
 
@@ -105,7 +111,6 @@ window.verDetalhe = async (id) => {
   if (!c) return;
   checklistDetalhe = c;
 
-  const modal = document.getElementById('modal-detalhe');
   document.getElementById('det-placa').textContent     = c.placa;
   document.getElementById('det-motorista').textContent = c.motorista;
   document.getElementById('det-datahora').textContent  = formatarDataHora(c.criadoEm);
@@ -113,14 +118,12 @@ window.verDetalhe = async (id) => {
     `<span class="badge badge-${c.resultado}">${c.resultado === 'aprovado' ? '✅ Aprovado' : '❌ Reprovado'}</span>`;
   document.getElementById('det-percentual').textContent = `${c.percentual ?? 0}% de conformidade`;
 
-  // Renderizar itens
   const container = document.getElementById('det-itens');
   container.innerHTML = '';
 
   for (const secao of secoes) {
     const itensSecao = itens.filter(i => i.secaoId === secao.id).sort((a,b) => a.ordem - b.ordem);
     if (itensSecao.length === 0) continue;
-
     container.innerHTML += `<div class="secao-detalhe-titulo">${secao.nome}</div>`;
 
     for (const item of itensSecao) {
@@ -128,7 +131,6 @@ window.verDetalhe = async (id) => {
       const obs  = c.observacoes?.[item.id] || '';
       const statusMap = { c: '✅ Conforme', nc: '❌ Não Conforme', na: '🚫 Não se Aplica' };
       const badgeMap  = { c: 'badge-aprovado', nc: 'badge-reprovado', na: 'badge-na' };
-
       container.innerHTML += `
         <div class="detalhe-item">
           <div class="detalhe-item-header">
@@ -150,7 +152,7 @@ document.getElementById('btn-det-pdf')?.addEventListener('click', () => {
   exportarPDF(html, `checklist-${checklistDetalhe.placa}-${checklistDetalhe.id}`);
 });
 
-// Filtro
+// Filtros
 document.getElementById('filtro-busca')?.addEventListener('input', aplicarFiltros);
 document.getElementById('filtro-resultado')?.addEventListener('change', aplicarFiltros);
 document.getElementById('filtro-placa-hist')?.addEventListener('input', aplicarFiltros);
@@ -159,7 +161,6 @@ function aplicarFiltros() {
   const busca     = document.getElementById('filtro-busca')?.value.toLowerCase() || '';
   const resultado = document.getElementById('filtro-resultado')?.value || '';
   const placa     = document.getElementById('filtro-placa-hist')?.value.toUpperCase() || '';
-
   const filtrado = checklists.filter(c => {
     const matchBusca     = !busca || c.motorista?.toLowerCase().includes(busca) || c.placa?.includes(busca.toUpperCase());
     const matchResultado = !resultado || c.resultado === resultado;
@@ -174,11 +175,6 @@ function renderizarEstatisticas() {
   const total    = checklists.length;
   const aprovado = checklists.filter(c => c.resultado === 'aprovado').length;
   const reprovado = total - aprovado;
-
-  document.getElementById('stat-total')?.setAttribute('data-val', total);
-  document.getElementById('stat-aprovado')?.setAttribute('data-val', aprovado);
-  document.getElementById('stat-reprovado')?.setAttribute('data-val', reprovado);
-
   document.getElementById('stat-total-val').textContent    = total;
   document.getElementById('stat-aprovado-val').textContent = aprovado;
   document.getElementById('stat-reprovado-val').textContent = reprovado;
@@ -200,12 +196,10 @@ async function carregarPlacas() {
 function renderizarPlacas() {
   const el = document.getElementById('lista-placas');
   if (!el) return;
-
   if (placas.length === 0) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">🚗</div><p>Nenhuma placa cadastrada ainda.</p></div>`;
     return;
   }
-
   el.innerHTML = placas.map(p => `
     <div class="item-lista ${p.ativo ? '' : 'inativo'}">
       <div class="item-lista-info">
@@ -226,7 +220,6 @@ function renderizarPlacas() {
     </div>`).join('');
 }
 
-// Adicionar placa
 document.getElementById('btn-add-placa')?.addEventListener('click', () => {
   document.getElementById('modal-placa-titulo').textContent = 'Nova Placa';
   document.getElementById('placa-id').value = '';
@@ -251,14 +244,11 @@ document.getElementById('btn-salvar-placa')?.addEventListener('click', async () 
     toast('Formato de placa inválido. Use ABC1234 ou ABC1D23.', 'error');
     return;
   }
-
-  // Checar duplicata
   const duplicata = placas.find(p => p.placa === placa && p.id !== id);
   if (duplicata) {
     toast('Essa placa já está cadastrada.', 'error');
     return;
   }
-
   try {
     if (id) {
       await updateDoc(doc(db, 'placas', id), { placa });
@@ -293,7 +283,6 @@ async function carregarSecoes() {
   try {
     const snap = await getDocs(query(collection(db, 'secoes'), orderBy('ordem')));
     secoes = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    // Preencher select de seção no modal
     const sel = document.getElementById('item-secao');
     if (sel) {
       sel.innerHTML = secoes.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
@@ -316,18 +305,15 @@ async function carregarItens() {
 function renderizarItens() {
   const el = document.getElementById('lista-itens-config');
   if (!el) return;
-
   if (itens.length === 0) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">📋</div><p>Nenhum item cadastrado.</p></div>`;
     return;
   }
-
   let html = '';
   for (const secao of secoes) {
     const itensSecao = itens.filter(i => i.secaoId === secao.id).sort((a,b) => a.ordem - b.ordem);
     if (itensSecao.length === 0) continue;
     html += `<div class="secao-titulo" style="margin-top:16px"><div class="secao-numero">${secao.ordem}</div>${secao.nome}</div>`;
-
     for (const item of itensSecao) {
       html += `
         <div class="item-lista ${item.ativo ? '' : 'inativo'}">
@@ -389,11 +375,8 @@ document.getElementById('btn-salvar-item')?.addEventListener('click', async () =
     toast('Preencha todos os campos obrigatórios.', 'error');
     return;
   }
-
-  // Calcular ordem dentro da seção
   const itensSecao = itens.filter(i => i.secaoId === secaoId && i.id !== id);
   const ordem = itensSecao.length + 1;
-
   const dados = { nome, parametro, numero, secaoId, impeditivo, permiteNaoAplica, ordem, ativo: true };
 
   try {
@@ -424,6 +407,188 @@ window.toggleItem = async (id, ativo) => {
 };
 
 // ============================================================
+// USUÁRIOS
+// ============================================================
+async function carregarUsuarios() {
+  try {
+    const snap = await getDocs(query(collection(db, 'usuarios'), orderBy('criadoEm', 'desc')));
+    usuarios = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderizarUsuarios();
+  } catch (e) {
+    toast('Erro ao carregar usuários.', 'error');
+    console.error(e);
+  }
+}
+
+function renderizarUsuarios() {
+  const el = document.getElementById('lista-usuarios');
+  if (!el) return;
+
+  if (usuarios.length === 0) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">👤</div>
+        <p>Nenhum usuário cadastrado ainda.</p>
+        <p style="font-size:13px;color:var(--cor-texto-3);margin-top:8px">
+          O primeiro admin deve ser criado pelo console do Firebase.
+        </p>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = usuarios.map(u => {
+    const eVoceMesmo = u.email === usuarioAtual?.email;
+    return `
+    <div class="item-lista ${u.ativo ? '' : 'inativo'}">
+      <div class="item-lista-info">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="
+            width:36px;height:36px;border-radius:50%;
+            background:var(--cor-primaria-dim);
+            display:flex;align-items:center;justify-content:center;
+            font-size:16px;flex-shrink:0;
+          ">👤</div>
+          <div>
+            <div style="font-weight:600;font-size:14px">${u.nome || '—'}</div>
+            <div style="font-size:12px;color:var(--cor-texto-3);font-family:'JetBrains Mono',monospace">${u.email}</div>
+          </div>
+        </div>
+        <div class="item-lista-meta" style="margin-top:10px;padding-left:46px">
+          ${u.ativo
+            ? '<span class="badge badge-aprovado">✅ Ativo</span>'
+            : '<span class="badge badge-reprovado">🔒 Inativo</span>'}
+          ${eVoceMesmo ? '<span class="badge" style="background:var(--cor-primaria-dim);color:var(--cor-primaria)">Você</span>' : ''}
+          <span style="font-size:12px;color:var(--cor-texto-3)">Criado em ${formatarDataHora(u.criadoEm)}</span>
+        </div>
+      </div>
+      <div class="item-lista-actions">
+        <button class="btn btn-ghost btn-sm" onclick="enviarResetSenha('${u.email}')" title="Enviar link de redefinição">
+          🔑 Reset senha
+        </button>
+        ${eVoceMesmo ? '' : `
+          <button class="btn btn-sm ${u.ativo ? 'btn-danger' : 'btn-ghost'}" onclick="toggleUsuario('${u.id}', ${u.ativo}, '${u.email}')">
+            ${u.ativo ? '🔒 Inativar' : '🔓 Ativar'}
+          </button>
+        `}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Adicionar usuário
+document.getElementById('btn-add-usuario')?.addEventListener('click', () => {
+  document.getElementById('usuario-nome').value  = '';
+  document.getElementById('usuario-email').value = '';
+  document.getElementById('usuario-senha').value = '';
+  document.getElementById('usuario-modal-erro')?.classList.add('hidden');
+  abrirModal('modal-usuario');
+});
+
+document.getElementById('btn-salvar-usuario')?.addEventListener('click', async () => {
+  const nome  = document.getElementById('usuario-nome').value.trim();
+  const email = document.getElementById('usuario-email').value.trim().toLowerCase();
+  const senha = document.getElementById('usuario-senha').value;
+  const erroEl = document.getElementById('usuario-modal-erro');
+
+  erroEl?.classList.add('hidden');
+
+  if (!nome || !email || !senha) {
+    erroEl.textContent = 'Preencha todos os campos.';
+    erroEl.classList.remove('hidden');
+    return;
+  }
+  if (senha.length < 6) {
+    erroEl.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+    erroEl.classList.remove('hidden');
+    return;
+  }
+
+  const btn = document.getElementById('btn-salvar-usuario');
+  btn.disabled = true;
+  btn.textContent = 'Criando...';
+
+  try {
+    // Cria o usuário no Firebase Auth
+    // IMPORTANTE: Isso vai fazer login com o novo usuário momentaneamente.
+    // Salvamos o token do admin antes.
+    const adminEmail = usuarioAtual.email;
+
+    const cred = await createUserWithEmailAndPassword(auth, email, senha);
+    const novoUid = cred.user.uid;
+
+    // Salva metadados no Firestore
+    await setDoc(doc(db, 'usuarios', novoUid), {
+      uid: novoUid,
+      nome,
+      email,
+      ativo: true,
+      criadoEm: serverTimestamp(),
+      criadoPor: usuarioAtual.uid
+    });
+
+    // O Firebase Auth faz login automático com o novo usuário.
+    // Precisamos reconectar o admin. Como não temos a senha do admin,
+    // usamos signOut e redirecionamos para login.
+    toast(`✅ Usuário ${nome} criado! Você será redirecionado para reautenticar.`, 'success');
+    fecharModal('modal-usuario');
+    await carregarUsuarios();
+
+    // Desloga e pede relogin após 2s
+    setTimeout(async () => {
+      await signOut(auth);
+      window.location.href = `login.html?msg=usuario-criado`;
+    }, 2000);
+
+  } catch (e) {
+    const msgs = {
+      'auth/email-already-in-use': 'Este e-mail já está em uso.',
+      'auth/invalid-email':        'E-mail inválido.',
+      'auth/weak-password':        'Senha muito fraca (mínimo 6 caracteres).',
+    };
+    erroEl.textContent = msgs[e.code] || `Erro: ${e.message}`;
+    erroEl.classList.remove('hidden');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Criar Usuário';
+  }
+});
+
+window.toggleUsuario = async (id, ativo, email) => {
+  if (email === usuarioAtual?.email) {
+    toast('Você não pode inativar a si mesmo.', 'error');
+    return;
+  }
+  const acao = ativo ? 'inativar' : 'ativar';
+  if (!confirmar(`Deseja ${acao} o usuário ${email}?\n\nNota: isso apenas marca o status no sistema. O acesso ao Firebase Auth precisa ser gerenciado pelo console do Firebase.`)) return;
+  try {
+    await updateDoc(doc(db, 'usuarios', id), { ativo: !ativo });
+    toast(`Usuário ${ativo ? 'inativado' : 'ativado'}!`, 'success');
+    await carregarUsuarios();
+  } catch (e) {
+    toast('Erro ao alterar status do usuário.', 'error');
+  }
+};
+
+window.enviarResetSenha = async (email) => {
+  if (!confirmar(`Enviar link de redefinição de senha para ${email}?`)) return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast(`Link enviado para ${email}`, 'success');
+  } catch (e) {
+    toast('Erro ao enviar e-mail de redefinição.', 'error');
+  }
+};
+
+// Toggle senha no modal de usuário
+document.getElementById('toggle-usuario-senha')?.addEventListener('click', () => {
+  const inp = document.getElementById('usuario-senha');
+  const btn = document.getElementById('toggle-usuario-senha');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+  btn.textContent = inp.type === 'password' ? '👁️' : '🙈';
+});
+
+// ============================================================
 // FECHAR MODAIS
 // ============================================================
 document.querySelectorAll('.modal-close, [data-fechar-modal]').forEach(btn => {
@@ -437,3 +602,10 @@ document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
     if (e.target === backdrop) backdrop.classList.add('hidden');
   });
 });
+
+// Exibir mensagem de sucesso de criação de usuário
+const params = new URLSearchParams(window.location.search);
+if (params.get('msg') === 'usuario-criado') {
+  // Limpa URL
+  history.replaceState({}, '', window.location.pathname);
+}
