@@ -12,6 +12,7 @@
 <div class="page-login">
   <div class="login-card">
     <div class="card">
+
       <!-- Brand -->
       <div class="login-brand" style="padding:32px 24px 0">
         <div class="brand-icon-lg">🚗</div>
@@ -20,8 +21,99 @@
       </div>
 
       <div class="card-body">
-        <form id="login-form" novalidate>
-          <div id="login-erro" class="hidden" style="
+
+        <!-- ===== SEÇÃO: LOGIN ===== -->
+        <div id="secao-login">
+          <form id="login-form" novalidate>
+            <div id="login-erro" class="hidden" style="
+              background:var(--cor-reprovado-dim);
+              border:1px solid var(--cor-reprovado);
+              color:var(--cor-reprovado);
+              border-radius:var(--radius-sm);
+              padding:10px 14px;
+              font-size:13px;
+              margin-bottom:16px;
+            "></div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-email">E-mail</label>
+              <input
+                type="email"
+                id="login-email"
+                class="form-control"
+                placeholder="seu@email.com"
+                autocomplete="email"
+                required
+              >
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="login-senha">Senha</label>
+              <div style="position:relative">
+                <input
+                  type="password"
+                  id="login-senha"
+                  class="form-control"
+                  placeholder="••••••••"
+                  autocomplete="current-password"
+                  required
+                  style="padding-right:44px"
+                >
+                <button
+                  type="button"
+                  id="toggle-senha"
+                  style="
+                    position:absolute;right:12px;top:50%;transform:translateY(-50%);
+                    background:none;border:none;cursor:pointer;font-size:16px;
+                    color:var(--cor-texto-3);padding:0;
+                  "
+                >👁️</button>
+              </div>
+            </div>
+
+            <!-- Esqueceu a senha -->
+            <div style="text-align:right;margin-top:-10px;margin-bottom:18px">
+              <a href="#" id="link-esqueceu" style="font-size:12px;color:var(--cor-texto-3)">
+                Esqueceu a senha?
+              </a>
+            </div>
+
+            <button type="submit" id="btn-login" class="btn btn-primary btn-lg" style="width:100%">
+              Entrar
+            </button>
+          </form>
+
+          <div style="margin-top:20px;text-align:center">
+            <a href="../index.html" style="font-size:13px;color:var(--cor-texto-3)">
+              ← Voltar para o Checklist
+            </a>
+          </div>
+
+          <div style="
+            margin-top:20px;
+            padding:12px;
+            background:var(--cor-fundo);
+            border-radius:var(--radius-sm);
+            font-size:12px;
+            color:var(--cor-texto-3);
+            text-align:center;
+            border:1px solid var(--cor-borda)
+          ">
+            💡 Para criar o primeiro usuário administrador, use o<br>
+            <strong>Firebase Authentication</strong> no console do Firebase.
+          </div>
+        </div>
+
+        <!-- ===== SEÇÃO: REDEFINIR SENHA ===== -->
+        <div id="secao-reset" class="hidden">
+          <div style="margin-bottom:20px">
+            <h2 style="font-size:16px;font-weight:600;margin-bottom:6px">🔑 Redefinir senha</h2>
+            <p style="font-size:13px;color:var(--cor-texto-3);line-height:1.6">
+              Informe seu e-mail e enviaremos um link para criar uma nova senha.
+            </p>
+          </div>
+
+          <div id="reset-erro" class="hidden" style="
             background:var(--cor-reprovado-dim);
             border:1px solid var(--cor-reprovado);
             color:var(--cor-reprovado);
@@ -31,66 +123,37 @@
             margin-bottom:16px;
           "></div>
 
+          <div id="reset-sucesso" class="hidden" style="
+            background:var(--cor-aprovado-dim);
+            border:1px solid var(--cor-aprovado);
+            color:var(--cor-aprovado);
+            border-radius:var(--radius-sm);
+            padding:10px 14px;
+            font-size:13px;
+            margin-bottom:16px;
+            line-height:1.5;
+          "></div>
+
           <div class="form-group">
-            <label class="form-label" for="login-email">E-mail</label>
+            <label class="form-label" for="reset-email">E-mail da conta</label>
             <input
               type="email"
-              id="login-email"
+              id="reset-email"
               class="form-control"
               placeholder="seu@email.com"
               autocomplete="email"
-              required
             >
           </div>
 
-          <div class="form-group">
-            <label class="form-label" for="login-senha">Senha</label>
-            <div style="position:relative">
-              <input
-                type="password"
-                id="login-senha"
-                class="form-control"
-                placeholder="••••••••"
-                autocomplete="current-password"
-                required
-                style="padding-right:44px"
-              >
-              <button
-                type="button"
-                id="toggle-senha"
-                style="
-                  position:absolute;right:12px;top:50%;transform:translateY(-50%);
-                  background:none;border:none;cursor:pointer;font-size:16px;
-                  color:var(--cor-texto-3);padding:0;
-                "
-              >👁️</button>
-            </div>
-          </div>
-
-          <button type="submit" id="btn-login" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px">
-            Entrar
+          <button id="btn-reset-senha" class="btn btn-primary btn-lg" style="width:100%;margin-bottom:12px">
+            Enviar link de redefinição
           </button>
-        </form>
 
-        <div style="margin-top:20px;text-align:center">
-          <a href="../index.html" style="font-size:13px;color:var(--cor-texto-3)">
-            ← Voltar para o Checklist
-          </a>
+          <button id="btn-voltar-login" class="btn btn-ghost" style="width:100%">
+            ← Voltar para o login
+          </button>
         </div>
 
-        <div style="
-          margin-top:20px;
-          padding:12px;
-          background:var(--cor-fundo);
-          border-radius:var(--radius-sm);
-          font-size:12px;
-          color:var(--cor-texto-3);
-          text-align:center;
-          border:1px solid var(--cor-borda)
-        ">
-          💡 Para criar o primeiro usuário administrador, use o<br>
-          <strong>Firebase Authentication</strong> no console do Firebase.
-        </div>
       </div>
     </div>
   </div>
