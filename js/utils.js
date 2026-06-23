@@ -64,13 +64,15 @@ export function confirmar(msg) {
 
 /** Exportar checklist para PDF via print */
 export function exportarPDF(conteudoHTML, titulo = 'checklist') {
+  // Calcula o caminho absoluto do css/pdf.css independente de onde o script é chamado
+  const base = new URL('../css/pdf.css', import.meta.url).href;
   const janela = window.open('', '_blank');
   janela.document.write(`<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <title>${titulo}</title>
-  <link rel="stylesheet" href="../css/pdf.css">
+  <link rel="stylesheet" href="${base}">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <style>
     @page { margin: 20mm; size: A4; }
