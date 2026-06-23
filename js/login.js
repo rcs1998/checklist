@@ -9,7 +9,7 @@ import {
 
 // Se já logado, redireciona
 onAuthStateChanged(auth, (user) => {
-  if (user) window.location.href = 'admin.html';
+  if (user) window.location.href = '/checklist/pages/admin.html';
 });
 
 const form     = document.getElementById('login-form');
@@ -34,7 +34,7 @@ form?.addEventListener('submit', async (e) => {
 
   try {
     await signInWithEmailAndPassword(auth, email, senha);
-    window.location.href = 'admin.html';
+    window.location.href = '/checklist/pages/admin.html';
   } catch (err) {
     const msgs = {
       'auth/user-not-found':     'Usuário não encontrado.',
