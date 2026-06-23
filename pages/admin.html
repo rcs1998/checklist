@@ -28,7 +28,7 @@
   <div class="page-header">
     <div class="page-header-text">
       <h1>⚙️ Painel Administrativo</h1>
-      <p>Gerencie resultados, placas e itens do checklist.</p>
+      <p>Gerencie resultados, placas, itens e usuários do sistema.</p>
     </div>
     <a href="../index.html" class="btn btn-primary">
       ➕ Novo Checklist
@@ -56,6 +56,7 @@
     <button class="tab-btn active" data-tab="tab-historico">📊 Resultados</button>
     <button class="tab-btn" data-tab="tab-placas">🚗 Placas</button>
     <button class="tab-btn" data-tab="tab-itens">📋 Itens do Checklist</button>
+    <button class="tab-btn" data-tab="tab-usuarios">👤 Usuários</button>
   </div>
 
   <!-- ===== TAB: HISTÓRICO ===== -->
@@ -69,17 +70,14 @@
         <option value="reprovado">❌ Reprovados</option>
       </select>
     </div>
-
     <div id="hist-loading" class="loading-state">
       <div class="spinner"></div>
       <span>Carregando inspeções...</span>
     </div>
-
     <div id="hist-empty" class="empty-state hidden">
       <div class="empty-icon">📭</div>
       <p>Nenhum checklist encontrado com os filtros aplicados.</p>
     </div>
-
     <div id="hist-lista"></div>
   </div>
 
@@ -103,6 +101,31 @@
     </div>
   </div>
 
+  <!-- ===== TAB: USUÁRIOS ===== -->
+  <div id="tab-usuarios" class="tab-content">
+    <div style="
+      background:var(--cor-alerta-dim);
+      border:1px solid var(--cor-alerta);
+      border-radius:var(--radius-md);
+      padding:14px 18px;
+      font-size:13px;
+      color:var(--cor-alerta);
+      margin-bottom:20px;
+      line-height:1.6;
+    ">
+      ⚠️ <strong>Atenção:</strong> Ao criar um novo usuário, você será desconectado temporariamente para que o sistema finalize o processo. Faça login novamente em seguida.<br>
+      Para <strong>desativar o acesso</strong> de um usuário ao Firebase, use também o <a href="https://console.firebase.google.com" target="_blank" style="color:var(--cor-alerta);text-decoration:underline">console do Firebase</a>.
+    </div>
+
+    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+      <button id="btn-add-usuario" class="btn btn-primary">➕ Novo Usuário</button>
+    </div>
+
+    <div id="lista-usuarios">
+      <div class="loading-state"><div class="spinner"></div><span>Carregando usuários...</span></div>
+    </div>
+  </div>
+
 </main>
 
 <!-- ========== MODAL: DETALHE DO CHECKLIST ========== -->
@@ -113,7 +136,6 @@
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <!-- Resumo -->
       <div style="
         display:grid;grid-template-columns:1fr 1fr;gap:12px;
         background:var(--cor-surface-2);border-radius:var(--radius-md);
@@ -140,8 +162,6 @@
           <div id="det-percentual" style="font-size:14px;font-weight:600"></div>
         </div>
       </div>
-
-      <!-- Itens -->
       <div id="det-itens"></div>
     </div>
     <div class="modal-footer">
@@ -189,7 +209,6 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="item-id">
-
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label class="form-label" for="item-numero">Número <span class="req">*</span></label>
@@ -197,22 +216,17 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="item-secao">Seção <span class="req">*</span></label>
-          <select id="item-secao" class="form-control">
-            <!-- Preenchido via JS -->
-          </select>
+          <select id="item-secao" class="form-control"></select>
         </div>
       </div>
-
       <div class="form-group">
         <label class="form-label" for="item-nome">Nome do Item <span class="req">*</span></label>
         <input type="text" id="item-nome" class="form-control" placeholder="Ex: Nível de óleo do motor">
       </div>
-
       <div class="form-group">
         <label class="form-label" for="item-param">Parâmetro / Critério <span class="req">*</span></label>
         <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado e os critérios de conformidade..."></textarea>
       </div>
-
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div class="toggle-wrap">
           <label class="toggle">
@@ -229,15 +243,10 @@
           <span class="toggle-label">🚫 Permite "Não se Aplica"</span>
         </div>
       </div>
-
       <div style="
-        margin-top:16px;
-        padding:12px;
-        background:var(--cor-fundo);
-        border-radius:var(--radius-sm);
-        font-size:12px;
-        color:var(--cor-texto-3);
-        border:1px solid var(--cor-borda)
+        margin-top:16px;padding:12px;
+        background:var(--cor-fundo);border-radius:var(--radius-sm);
+        font-size:12px;color:var(--cor-texto-3);border:1px solid var(--cor-borda)
       ">
         ⛔ <strong>Impeditivo:</strong> se marcado como "Não Conforme", o veículo será automaticamente reprovado.<br>
         🚫 <strong>Não se Aplica:</strong> permite que o motorista marque N/A para este item.
@@ -246,6 +255,78 @@
     <div class="modal-footer">
       <button class="btn btn-ghost modal-close">Cancelar</button>
       <button id="btn-salvar-item" class="btn btn-primary">Salvar Item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: NOVO USUÁRIO ========== -->
+<div id="modal-usuario" class="modal-backdrop hidden">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header">
+      <h3>👤 Novo Usuário</h3>
+      <button class="modal-close">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <div id="usuario-modal-erro" class="hidden" style="
+        background:var(--cor-reprovado-dim);
+        border:1px solid var(--cor-reprovado);
+        color:var(--cor-reprovado);
+        border-radius:var(--radius-sm);
+        padding:10px 14px;
+        font-size:13px;
+        margin-bottom:16px;
+      "></div>
+
+      <div class="form-group">
+        <label class="form-label" for="usuario-nome">Nome completo <span class="req">*</span></label>
+        <input type="text" id="usuario-nome" class="form-control" placeholder="Ex: João Silva" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="usuario-email">E-mail <span class="req">*</span></label>
+        <input type="email" id="usuario-email" class="form-control" placeholder="usuario@email.com" autocomplete="off">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label" for="usuario-senha">Senha inicial <span class="req">*</span></label>
+        <div style="position:relative">
+          <input
+            type="password"
+            id="usuario-senha"
+            class="form-control"
+            placeholder="Mínimo 6 caracteres"
+            autocomplete="new-password"
+            style="padding-right:44px"
+          >
+          <button
+            type="button"
+            id="toggle-usuario-senha"
+            style="
+              position:absolute;right:12px;top:50%;transform:translateY(-50%);
+              background:none;border:none;cursor:pointer;font-size:16px;
+              color:var(--cor-texto-3);padding:0;
+            "
+          >👁️</button>
+        </div>
+        <span class="form-hint">O usuário poderá alterar a senha depois pelo link "Esqueceu a senha?" na tela de login.</span>
+      </div>
+
+      <div style="
+        padding:12px 14px;
+        background:var(--cor-alerta-dim);
+        border:1px solid var(--cor-alerta);
+        border-radius:var(--radius-sm);
+        font-size:12px;
+        color:var(--cor-alerta);
+        line-height:1.6;
+      ">
+        ⚠️ Após criar o usuário, você será <strong>desconectado automaticamente</strong> e precisará fazer login novamente.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost modal-close">Cancelar</button>
+      <button id="btn-salvar-usuario" class="btn btn-primary">Criar Usuário</button>
     </div>
   </div>
 </div>
