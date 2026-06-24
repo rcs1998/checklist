@@ -1,5 +1,5 @@
 // ============================================================
-// ADMIN.JS — Resultados, Placas, Itens e Usuários
+// ADMIN.JS — Resultados, Placas, Itens, Usuários e Dashboard
 // ============================================================
 import { db, auth, app } from "./firebase-config.js";
 import {
@@ -10,7 +10,10 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail,
   createUserWithEmailAndPassword,
-  signOut
+  updatePassword,
+  signOut,
+  EmailAuthProvider,
+  reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   toast, abrirModal, fecharModal, confirmar,
@@ -28,15 +31,104 @@ let checklistDetalhe = null;
 let usuarioAtual = null;
 
 // ---------- Guard de autenticação ----------
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = 'login.html';
-  } else {
-    usuarioAtual = user;
-    document.getElementById('user-email').textContent = user.email;
-    init();
+    return;
   }
+  usuarioAtual = user;
+  document.getElementById('user-email').textContent = user.email;
+
+  // Verificar se precisa trocar senha no primeiro acesso
+  const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
+  if (userDoc.exists() && userDoc.data().trocarSenha === true) {
+    mostrarTrocaSenha();
+    return;
+  }
+
+  init();
 });
+
+// ---------- Troca de senha obrigatória ----------
+function mostrarTrocaSenha() {
+  const overlay = document.createElement('div');
+  overlay.className = 'change-password-overlay';
+  overlay.id = 'overlay-troca-senha';
+  overlay.innerHTML = `
+    <div class="change-password-box">
+      <h2>🔑 Crie sua nova senha</h2>
+      <p>Por segurança, você precisa criar uma nova senha antes de continuar. Esta é sua primeira vez acessando o sistema.</p>
+      <div id="troca-erro" class="hidden" style="
+        background:var(--cor-reprovado-dim);border:1px solid var(--cor-reprovado);
+        color:var(--cor-reprovado);border-radius:var(--radius-sm);
+        padding:10px 14px;font-size:13px;margin-bottom:16px;
+      "></div>
+      <div class="form-group">
+        <label class="form-label">Nova senha <span class="req">*</span></label>
+        <div style="position:relative">
+          <input type="password" id="nova-senha" class="form-control" placeholder="Mínimo 6 caracteres" style="padding-right:44px">
+          <button type="button" id="toggle-nova-senha" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--cor-texto-3)">👁️</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Confirmar nova senha <span class="req">*</span></label>
+        <input type="password" id="confirmar-senha" class="form-control" placeholder="Repita a senha">
+      </div>
+      <button id="btn-confirmar-troca" class="btn btn-primary btn-lg" style="width:100%">Definir nova senha e continuar</button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('toggle-nova-senha')?.addEventListener('click', () => {
+    const inp = document.getElementById('nova-senha');
+    inp.type = inp.type === 'password' ? 'text' : 'password';
+    document.getElementById('toggle-nova-senha').textContent = inp.type === 'password' ? '👁️' : '🙈';
+  });
+
+  document.getElementById('btn-confirmar-troca')?.addEventListener('click', async () => {
+    const nova = document.getElementById('nova-senha').value;
+    const conf = document.getElementById('confirmar-senha').value;
+    const erroEl = document.getElementById('troca-erro');
+    erroEl.classList.add('hidden');
+
+    if (!nova || !conf) {
+      erroEl.textContent = 'Preencha os dois campos.';
+      erroEl.classList.remove('hidden');
+      return;
+    }
+    if (nova.length < 6) {
+      erroEl.textContent = 'A senha deve ter no mínimo 6 caracteres.';
+      erroEl.classList.remove('hidden');
+      return;
+    }
+    if (nova !== conf) {
+      erroEl.textContent = 'As senhas não conferem.';
+      erroEl.classList.remove('hidden');
+      return;
+    }
+
+    const btn = document.getElementById('btn-confirmar-troca');
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      await updatePassword(usuarioAtual, nova);
+      await updateDoc(doc(db, 'usuarios', usuarioAtual.uid), { trocarSenha: false });
+      overlay.remove();
+      toast('Senha definida com sucesso! Bem-vindo ao sistema.', 'success');
+      init();
+    } catch (e) {
+      if (e.code === 'auth/requires-recent-login') {
+        erroEl.textContent = 'Sessão expirada. Faça login novamente para redefinir a senha.';
+      } else {
+        erroEl.textContent = `Erro: ${e.message}`;
+      }
+      erroEl.classList.remove('hidden');
+      btn.disabled = false;
+      btn.textContent = 'Definir nova senha e continuar';
+    }
+  });
+}
 
 // ---------- Logout ----------
 document.getElementById('btn-logout')?.addEventListener('click', () => {
@@ -49,7 +141,9 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById(btn.dataset.tab)?.classList.add('active');
+    const tabId = btn.dataset.tab;
+    document.getElementById(tabId)?.classList.add('active');
+    if (tabId === 'tab-dashboard') renderizarDashboard();
   });
 });
 
@@ -179,6 +273,300 @@ function renderizarEstatisticas() {
   document.getElementById('stat-aprovado-val').textContent = aprovado;
   document.getElementById('stat-reprovado-val').textContent = reprovado;
 }
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+let chartDonut = null;
+let chartLine  = null;
+
+function renderizarDashboard() {
+  const filtroTipo = document.getElementById('dash-filtro-tipo')?.value || 'mes';
+  let checksFiltrados = filtrarChecklistsDash(filtroTipo);
+  renderizarKPIs(checksFiltrados);
+  renderizarGraficoDonut(checksFiltrados);
+  renderizarGraficoLinha(filtroTipo);
+  renderizarNaoConformes(checksFiltrados);
+}
+
+function filtrarChecklistsDash(tipo) {
+  const agora = new Date();
+  if (tipo === 'mes') {
+    const mes  = parseInt(document.getElementById('dash-mes')?.value ?? agora.getMonth() + 1);
+    const ano  = parseInt(document.getElementById('dash-ano')?.value ?? agora.getFullYear());
+    return checklists.filter(c => {
+      const d = toDate(c.criadoEm);
+      return d && d.getMonth() + 1 === mes && d.getFullYear() === ano;
+    });
+  } else {
+    const de  = document.getElementById('dash-de')?.value;
+    const ate = document.getElementById('dash-ate')?.value;
+    if (!de || !ate) return checklists;
+    const deDt  = new Date(de + 'T00:00:00');
+    const ateDt = new Date(ate + 'T23:59:59');
+    return checklists.filter(c => {
+      const d = toDate(c.criadoEm);
+      return d && d >= deDt && d <= ateDt;
+    });
+  }
+}
+
+function toDate(ts) {
+  if (!ts) return null;
+  if (ts.toDate) return ts.toDate();
+  const d = new Date(ts);
+  return isNaN(d) ? null : d;
+}
+
+function renderizarKPIs(lista) {
+  const total = lista.length;
+  const aprov = lista.filter(c => c.resultado === 'aprovado').length;
+  const repr  = total - aprov;
+  const taxaAprov = total > 0 ? Math.round((aprov / total) * 100) : 0;
+  const mediaConf = total > 0
+    ? Math.round(lista.reduce((s,c) => s + (c.percentual ?? 0), 0) / total)
+    : 0;
+
+  // Contar impedimentos (checklists reprovados com item impeditivo NC)
+  let impeditivos = 0;
+  for (const c of lista) {
+    if (c.resultado === 'reprovado') {
+      const temImp = itens.some(i => i.impeditivo && c.respostas?.[i.id] === 'nc');
+      if (temImp) impeditivos++;
+    }
+  }
+
+  document.getElementById('dash-kpi-total').textContent   = total;
+  document.getElementById('dash-kpi-aprov').textContent   = taxaAprov + '%';
+  document.getElementById('dash-kpi-repr').textContent    = repr;
+  document.getElementById('dash-kpi-media').textContent   = mediaConf + '%';
+  document.getElementById('dash-kpi-imp').textContent     = impeditivos;
+  document.getElementById('dash-kpi-sub-aprov').textContent = `${aprov} de ${total} inspeções`;
+  document.getElementById('dash-kpi-sub-repr').textContent  = `${repr} reprovações no período`;
+  document.getElementById('dash-kpi-sub-media').textContent = 'Média de conformidade';
+  document.getElementById('dash-kpi-sub-imp').textContent   = 'Por item impeditivo';
+}
+
+function renderizarGraficoDonut(lista) {
+  const aprov = lista.filter(c => c.resultado === 'aprovado').length;
+  const repr  = lista.length - aprov;
+
+  const ctx = document.getElementById('chart-donut')?.getContext('2d');
+  if (!ctx) return;
+
+  if (chartDonut) chartDonut.destroy();
+
+  if (lista.length === 0) {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    return;
+  }
+
+  chartDonut = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Aprovados', 'Reprovados'],
+      datasets: [{
+        data: [aprov, repr],
+        backgroundColor: ['#00A87A', '#E0304A'],
+        borderWidth: 0,
+        hoverOffset: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 16,
+            font: { size: 13, family: 'Inter' },
+            color: '#4B5278',
+            usePointStyle: true,
+            pointStyleWidth: 10
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.parsed} (${Math.round(ctx.parsed / (aprov + repr) * 100)}%)`
+          }
+        }
+      }
+    }
+  });
+}
+
+function renderizarGraficoLinha(tipo) {
+  const ctx = document.getElementById('chart-linha')?.getContext('2d');
+  if (!ctx) return;
+
+  let labels = [];
+  let dadosAprov = [];
+  let dadosRepr  = [];
+
+  if (tipo === 'mes') {
+    const mes = parseInt(document.getElementById('dash-mes')?.value ?? new Date().getMonth() + 1);
+    const ano = parseInt(document.getElementById('dash-ano')?.value ?? new Date().getFullYear());
+    const diasNoMes = new Date(ano, mes, 0).getDate();
+
+    for (let d = 1; d <= diasNoMes; d++) {
+      const dt = new Date(ano, mes - 1, d);
+      const do_ = new Date(ano, mes - 1, d, 0, 0, 0);
+      const ate = new Date(ano, mes - 1, d, 23, 59, 59);
+      const grupo = checklists.filter(c => {
+        const cd = toDate(c.criadoEm);
+        return cd && cd >= do_ && cd <= ate;
+      });
+      labels.push(d.toString());
+      dadosAprov.push(grupo.filter(c => c.resultado === 'aprovado').length);
+      dadosRepr.push(grupo.filter(c => c.resultado === 'reprovado').length);
+    }
+  } else {
+    const de  = document.getElementById('dash-de')?.value;
+    const ate = document.getElementById('dash-ate')?.value;
+    if (!de || !ate) {
+      if (chartLine) chartLine.destroy();
+      return;
+    }
+    const deDt  = new Date(de + 'T00:00:00');
+    const ateDt = new Date(ate + 'T23:59:59');
+    const diff  = Math.ceil((ateDt - deDt) / (1000 * 60 * 60 * 24));
+    const dias  = Math.min(diff + 1, 62);
+
+    for (let i = 0; i < dias; i++) {
+      const d = new Date(deDt);
+      d.setDate(d.getDate() + i);
+      const do_ = new Date(d); do_.setHours(0,0,0,0);
+      const a   = new Date(d); a.setHours(23,59,59,999);
+      const grupo = checklists.filter(c => {
+        const cd = toDate(c.criadoEm); return cd && cd >= do_ && cd <= a;
+      });
+      labels.push(`${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`);
+      dadosAprov.push(grupo.filter(c => c.resultado === 'aprovado').length);
+      dadosRepr.push(grupo.filter(c => c.resultado === 'reprovado').length);
+    }
+  }
+
+  if (chartLine) chartLine.destroy();
+
+  chartLine = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Aprovados',
+          data: dadosAprov,
+          backgroundColor: 'rgba(0,168,122,0.75)',
+          borderRadius: 4,
+          borderSkipped: false
+        },
+        {
+          label: 'Reprovados',
+          data: dadosRepr,
+          backgroundColor: 'rgba(224,48,74,0.75)',
+          borderRadius: 4,
+          borderSkipped: false
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      scales: {
+        x: {
+          stacked: true,
+          grid: { display: false },
+          ticks: {
+            font: { size: 11 },
+            color: '#8892B0',
+            maxTicksLimit: 15,
+            maxRotation: 45
+          }
+        },
+        y: {
+          stacked: true,
+          beginAtZero: true,
+          ticks: { font: { size: 11 }, color: '#8892B0', stepSize: 1 },
+          grid: { color: '#DDE1EE' }
+        }
+      },
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { font: { size: 13, family: 'Inter' }, color: '#4B5278', usePointStyle: true }
+        }
+      }
+    }
+  });
+}
+
+function renderizarNaoConformes(lista) {
+  const el = document.getElementById('dash-nc-lista');
+  if (!el) return;
+
+  if (lista.length === 0) {
+    el.innerHTML = `<div class="dash-empty">📭 Nenhuma inspeção no período selecionado.</div>`;
+    return;
+  }
+
+  // Contar NCs por item
+  const contagem = {};
+  for (const c of lista) {
+    for (const [itemId, resp] of Object.entries(c.respostas || {})) {
+      if (resp === 'nc') {
+        contagem[itemId] = (contagem[itemId] || 0) + 1;
+      }
+    }
+  }
+
+  if (Object.keys(contagem).length === 0) {
+    el.innerHTML = `<div class="dash-empty">✅ Nenhum item não conforme no período!</div>`;
+    return;
+  }
+
+  const rankingItems = Object.entries(contagem)
+    .map(([id, qty]) => ({ item: itens.find(i => i.id === id), qty }))
+    .filter(x => x.item)
+    .sort((a, b) => b.qty - a.qty)
+    .slice(0, 10);
+
+  const maxQty = rankingItems[0]?.qty || 1;
+
+  el.innerHTML = rankingItems.map(({ item, qty }, idx) => {
+    const pct = Math.round((qty / lista.length) * 100);
+    const rankClass = idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : '';
+    return `
+    <div class="dash-nc-item">
+      <div class="dash-nc-rank ${rankClass}">${idx + 1}</div>
+      <div class="dash-nc-info">
+        <div class="dash-nc-nome" title="${item.nome}">#${String(item.numero).padStart(2,'0')} — ${item.nome}</div>
+        <div style="font-size:11px;color:var(--cor-texto-3);margin-top:2px">${item.impeditivo ? '⛔ Impeditivo' : '✅ Não impeditivo'} • ${pct}% das inspeções</div>
+      </div>
+      <div class="dash-nc-bar-wrap">
+        <div class="dash-nc-bar-bg">
+          <div class="dash-nc-bar" style="width:${Math.round((qty/maxQty)*100)}%"></div>
+        </div>
+        <div class="dash-nc-count">${qty}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Eventos filtros dashboard
+document.getElementById('dash-filtro-tipo')?.addEventListener('change', function() {
+  const tipo = this.value;
+  document.getElementById('dash-filtros-mes')?.classList.toggle('hidden', tipo !== 'mes');
+  document.getElementById('dash-filtros-custom')?.classList.toggle('hidden', tipo !== 'custom');
+  renderizarDashboard();
+});
+
+document.getElementById('dash-mes')?.addEventListener('change', renderizarDashboard);
+document.getElementById('dash-ano')?.addEventListener('change', renderizarDashboard);
+document.getElementById('dash-de')?.addEventListener('change', renderizarDashboard);
+document.getElementById('dash-ate')?.addEventListener('change', renderizarDashboard);
 
 // ============================================================
 // PLACAS
@@ -320,7 +708,7 @@ function renderizarItens() {
           <div class="item-lista-info">
             <div class="item-lista-nome">#${String(item.numero).padStart(2,'0')} — ${item.nome}</div>
             <div class="item-lista-meta">
-              ${item.impeditivo ? '<span class="badge badge-imp">⛔ Impeditivo</span>' : '<span class="badge" style="background:rgba(0,200,150,.1);color:#00C896">✅ Não Impeditivo</span>'}
+              ${item.impeditivo ? '<span class="badge badge-imp">⛔ Impeditivo</span>' : '<span class="badge" style="background:rgba(0,168,122,.1);color:#00A87A">✅ Não Impeditivo</span>'}
               ${item.permiteNaoAplica ? '<span class="badge badge-na">Permite N/A</span>' : ''}
               ${item.ativo ? '' : '<span class="badge badge-reprovado">Inativo</span>'}
             </div>
@@ -449,7 +837,7 @@ function renderizarUsuarios() {
             font-size:16px;flex-shrink:0;
           ">👤</div>
           <div>
-            <div style="font-weight:600;font-size:14px">${u.nome || '—'}</div>
+            <div style="font-weight:600;font-size:14px;color:var(--cor-texto)">${u.nome || '—'}</div>
             <div style="font-size:12px;color:var(--cor-texto-3);font-family:'JetBrains Mono',monospace">${u.email}</div>
           </div>
         </div>
@@ -458,12 +846,13 @@ function renderizarUsuarios() {
             ? '<span class="badge badge-aprovado">✅ Ativo</span>'
             : '<span class="badge badge-reprovado">🔒 Inativo</span>'}
           ${eVoceMesmo ? '<span class="badge" style="background:var(--cor-primaria-dim);color:var(--cor-primaria)">Você</span>' : ''}
+          ${u.trocarSenha ? '<span class="badge badge-alerta">⏳ Aguardando troca de senha</span>' : ''}
           <span style="font-size:12px;color:var(--cor-texto-3)">Criado em ${formatarDataHora(u.criadoEm)}</span>
         </div>
       </div>
       <div class="item-lista-actions">
         <button class="btn btn-ghost btn-sm" onclick="enviarResetSenha('${u.email}')" title="Enviar link de redefinição">
-          🔑 Reset senha
+          🔑 Reset
         </button>
         ${eVoceMesmo ? '' : `
           <button class="btn btn-sm ${u.ativo ? 'btn-danger' : 'btn-ghost'}" onclick="toggleUsuario('${u.id}', ${u.ativo}, '${u.email}')">
@@ -508,32 +897,27 @@ document.getElementById('btn-salvar-usuario')?.addEventListener('click', async (
   btn.textContent = 'Criando...';
 
   try {
-    // Cria o usuário no Firebase Auth
-    // IMPORTANTE: Isso vai fazer login com o novo usuário momentaneamente.
-    // Salvamos o token do admin antes.
     const adminEmail = usuarioAtual.email;
+    const adminUid   = usuarioAtual.uid;
 
     const cred = await createUserWithEmailAndPassword(auth, email, senha);
     const novoUid = cred.user.uid;
 
-    // Salva metadados no Firestore
+    // Salva metadados com trocarSenha: true
     await setDoc(doc(db, 'usuarios', novoUid), {
       uid: novoUid,
       nome,
       email,
       ativo: true,
+      trocarSenha: true,
       criadoEm: serverTimestamp(),
-      criadoPor: usuarioAtual.uid
+      criadoPor: adminUid
     });
 
-    // O Firebase Auth faz login automático com o novo usuário.
-    // Precisamos reconectar o admin. Como não temos a senha do admin,
-    // usamos signOut e redirecionamos para login.
     toast(`✅ Usuário ${nome} criado! Você será redirecionado para reautenticar.`, 'success');
     fecharModal('modal-usuario');
     await carregarUsuarios();
 
-    // Desloga e pede relogin após 2s
     setTimeout(async () => {
       await signOut(auth);
       window.location.href = `login.html?msg=usuario-criado`;
@@ -560,7 +944,7 @@ window.toggleUsuario = async (id, ativo, email) => {
     return;
   }
   const acao = ativo ? 'inativar' : 'ativar';
-  if (!confirmar(`Deseja ${acao} o usuário ${email}?\n\nNota: isso apenas marca o status no sistema. O acesso ao Firebase Auth precisa ser gerenciado pelo console do Firebase.`)) return;
+  if (!confirmar(`Deseja ${acao} o usuário ${email}?`)) return;
   try {
     await updateDoc(doc(db, 'usuarios', id), { ativo: !ativo });
     toast(`Usuário ${ativo ? 'inativado' : 'ativado'}!`, 'success');
@@ -606,6 +990,6 @@ document.querySelectorAll('.modal-backdrop').forEach(backdrop => {
 // Exibir mensagem de sucesso de criação de usuário
 const params = new URLSearchParams(window.location.search);
 if (params.get('msg') === 'usuario-criado') {
-  // Limpa URL
   history.replaceState({}, '', window.location.pathname);
+  setTimeout(() => toast('Usuário criado com sucesso! Bem-vindo de volta.', 'success'), 1000);
 }
