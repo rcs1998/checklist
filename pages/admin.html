@@ -6,10 +6,10 @@
   <title>Painel Admin — Checklist de Veículos</title>
   <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <div class="navbar-brand">
     <div class="brand-icon">🚗</div>
@@ -24,18 +24,14 @@
 
 <main class="page-admin">
 
-  <!-- Cabeçalho -->
   <div class="page-header">
     <div class="page-header-text">
       <h1>⚙️ Painel Administrativo</h1>
       <p>Gerencie resultados, placas, itens e usuários do sistema.</p>
     </div>
-    <a href="../index.html" class="btn btn-primary">
-      ➕ Novo Checklist
-    </a>
+    <a href="../index.html" class="btn btn-primary">➕ Novo Checklist</a>
   </div>
 
-  <!-- Estatísticas -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-label">Total de Inspeções</div>
@@ -51,15 +47,15 @@
     </div>
   </div>
 
-  <!-- Tabs -->
   <div class="tabs">
     <button class="tab-btn active" data-tab="tab-historico">📊 Resultados</button>
+    <button class="tab-btn" data-tab="tab-dashboard">📈 Dashboard</button>
     <button class="tab-btn" data-tab="tab-placas">🚗 Placas</button>
-    <button class="tab-btn" data-tab="tab-itens">📋 Itens do Checklist</button>
+    <button class="tab-btn" data-tab="tab-itens">📋 Itens</button>
     <button class="tab-btn" data-tab="tab-usuarios">👤 Usuários</button>
   </div>
 
-  <!-- ===== TAB: HISTÓRICO ===== -->
+  <!-- TAB: HISTÓRICO -->
   <div id="tab-historico" class="tab-content active">
     <div class="filtros-wrap">
       <input type="text" id="filtro-busca" class="form-control" placeholder="🔍 Buscar motorista ou placa...">
@@ -81,7 +77,108 @@
     <div id="hist-lista"></div>
   </div>
 
-  <!-- ===== TAB: PLACAS ===== -->
+  <!-- TAB: DASHBOARD -->
+  <div id="tab-dashboard" class="tab-content">
+
+    <div class="dashboard-filtros">
+      <div class="form-group" style="min-width:160px;margin-bottom:0">
+        <label>Tipo de filtro</label>
+        <select id="dash-filtro-tipo" class="form-control">
+          <option value="mes">Por mês</option>
+          <option value="custom">Período personalizado</option>
+        </select>
+      </div>
+
+      <div id="dash-filtros-mes" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="min-width:130px;margin-bottom:0">
+          <label>Mês</label>
+          <select id="dash-mes" class="form-control">
+            <option value="1">Janeiro</option>
+            <option value="2">Fevereiro</option>
+            <option value="3">Março</option>
+            <option value="4">Abril</option>
+            <option value="5">Maio</option>
+            <option value="6">Junho</option>
+            <option value="7">Julho</option>
+            <option value="8">Agosto</option>
+            <option value="9">Setembro</option>
+            <option value="10">Outubro</option>
+            <option value="11">Novembro</option>
+            <option value="12">Dezembro</option>
+          </select>
+        </div>
+        <div class="form-group" style="min-width:90px;margin-bottom:0">
+          <label>Ano</label>
+          <select id="dash-ano" class="form-control"></select>
+        </div>
+      </div>
+
+      <div id="dash-filtros-custom" class="hidden" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+        <div class="form-group" style="margin-bottom:0">
+          <label>De</label>
+          <input type="date" id="dash-de" class="form-control">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label>Até</label>
+          <input type="date" id="dash-ate" class="form-control">
+        </div>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <div class="dash-grid">
+      <div class="dash-kpi">
+        <div class="dash-kpi-label">Total de Inspeções</div>
+        <div class="dash-kpi-valor" id="dash-kpi-total">—</div>
+        <div class="dash-kpi-sub">No período selecionado</div>
+      </div>
+      <div class="dash-kpi kpi-aprovado">
+        <div class="dash-kpi-label">Taxa de Aprovação</div>
+        <div class="dash-kpi-valor" id="dash-kpi-aprov">—</div>
+        <div class="dash-kpi-sub" id="dash-kpi-sub-aprov">—</div>
+      </div>
+      <div class="dash-kpi kpi-reprovado">
+        <div class="dash-kpi-label">Reprovações</div>
+        <div class="dash-kpi-valor" id="dash-kpi-repr">—</div>
+        <div class="dash-kpi-sub" id="dash-kpi-sub-repr">—</div>
+      </div>
+      <div class="dash-kpi">
+        <div class="dash-kpi-label">Média de Conformidade</div>
+        <div class="dash-kpi-valor" id="dash-kpi-media">—</div>
+        <div class="dash-kpi-sub" id="dash-kpi-sub-media">Média de itens conformes</div>
+      </div>
+      <div class="dash-kpi kpi-alerta">
+        <div class="dash-kpi-label">Reprov. por Impeditivo</div>
+        <div class="dash-kpi-valor" id="dash-kpi-imp">—</div>
+        <div class="dash-kpi-sub" id="dash-kpi-sub-imp">Item impeditivo NC</div>
+      </div>
+    </div>
+
+    <!-- Gráficos -->
+    <div class="dash-charts-row">
+      <div class="dash-chart-card">
+        <div class="dash-chart-title">🍩 Aprovados vs Reprovados</div>
+        <div class="dash-chart-wrap">
+          <canvas id="chart-donut"></canvas>
+        </div>
+      </div>
+      <div class="dash-chart-card">
+        <div class="dash-chart-title">📅 Inspeções por Dia</div>
+        <div class="dash-chart-wrap">
+          <canvas id="chart-linha"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Ranking NC -->
+    <div class="dash-chart-card" style="margin-bottom:24px">
+      <div class="dash-chart-title">🚨 Top 10 — Itens Mais Não Conformes</div>
+      <div id="dash-nc-lista"></div>
+    </div>
+
+  </div>
+
+  <!-- TAB: PLACAS -->
   <div id="tab-placas" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <button id="btn-add-placa" class="btn btn-primary">➕ Nova Placa</button>
@@ -91,7 +188,7 @@
     </div>
   </div>
 
-  <!-- ===== TAB: ITENS ===== -->
+  <!-- TAB: ITENS -->
   <div id="tab-itens" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <button id="btn-add-item" class="btn btn-primary">➕ Novo Item</button>
@@ -101,26 +198,11 @@
     </div>
   </div>
 
-  <!-- ===== TAB: USUÁRIOS ===== -->
+  <!-- TAB: USUÁRIOS -->
   <div id="tab-usuarios" class="tab-content">
-    <div style="
-      background:var(--cor-alerta-dim);
-      border:1px solid var(--cor-alerta);
-      border-radius:var(--radius-md);
-      padding:14px 18px;
-      font-size:13px;
-      color:var(--cor-alerta);
-      margin-bottom:20px;
-      line-height:1.6;
-    ">
-      ⚠️ <strong>Atenção:</strong> Ao criar um novo usuário, você será desconectado temporariamente para que o sistema finalize o processo. Faça login novamente em seguida.<br>
-      Para <strong>desativar o acesso</strong> de um usuário ao Firebase, use também o <a href="https://console.firebase.google.com" target="_blank" style="color:var(--cor-alerta);text-decoration:underline">console do Firebase</a>.
-    </div>
-
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <button id="btn-add-usuario" class="btn btn-primary">➕ Novo Usuário</button>
     </div>
-
     <div id="lista-usuarios">
       <div class="loading-state"><div class="spinner"></div><span>Carregando usuários...</span></div>
     </div>
@@ -128,7 +210,7 @@
 
 </main>
 
-<!-- ========== MODAL: DETALHE DO CHECKLIST ========== -->
+<!-- MODAL: DETALHE DO CHECKLIST -->
 <div id="modal-detalhe" class="modal-backdrop hidden">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -136,11 +218,7 @@
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <div style="
-        display:grid;grid-template-columns:1fr 1fr;gap:12px;
-        background:var(--cor-surface-2);border-radius:var(--radius-md);
-        padding:16px;margin-bottom:20px
-      ">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--cor-surface-2);border-radius:var(--radius-md);padding:16px;margin-bottom:20px">
         <div>
           <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Placa</div>
           <div id="det-placa" style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;letter-spacing:.08em"></div>
@@ -171,7 +249,7 @@
   </div>
 </div>
 
-<!-- ========== MODAL: PLACA ========== -->
+<!-- MODAL: PLACA -->
 <div id="modal-placa" class="modal-backdrop hidden">
   <div class="modal">
     <div class="modal-header">
@@ -182,14 +260,8 @@
       <input type="hidden" id="placa-id">
       <div class="form-group">
         <label class="form-label" for="placa-input">Placa <span class="req">*</span></label>
-        <input
-          type="text"
-          id="placa-input"
-          class="form-control"
-          placeholder="ABC1234"
-          maxlength="8"
-          style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em"
-        >
+        <input type="text" id="placa-input" class="form-control" placeholder="ABC1234" maxlength="8"
+          style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em">
         <span class="form-hint">Formato: ABC1234 (antiga) ou ABC1D23 (Mercosul)</span>
       </div>
     </div>
@@ -200,7 +272,7 @@
   </div>
 </div>
 
-<!-- ========== MODAL: ITEM DO CHECKLIST ========== -->
+<!-- MODAL: ITEM DO CHECKLIST -->
 <div id="modal-item" class="modal-backdrop hidden">
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
@@ -225,7 +297,7 @@
       </div>
       <div class="form-group">
         <label class="form-label" for="item-param">Parâmetro / Critério <span class="req">*</span></label>
-        <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado e os critérios de conformidade..."></textarea>
+        <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado..."></textarea>
       </div>
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div class="toggle-wrap">
@@ -243,11 +315,7 @@
           <span class="toggle-label">🚫 Permite "Não se Aplica"</span>
         </div>
       </div>
-      <div style="
-        margin-top:16px;padding:12px;
-        background:var(--cor-fundo);border-radius:var(--radius-sm);
-        font-size:12px;color:var(--cor-texto-3);border:1px solid var(--cor-borda)
-      ">
+      <div style="margin-top:16px;padding:12px;background:var(--cor-fundo);border-radius:var(--radius-sm);font-size:12px;color:var(--cor-texto-3);border:1px solid var(--cor-borda)">
         ⛔ <strong>Impeditivo:</strong> se marcado como "Não Conforme", o veículo será automaticamente reprovado.<br>
         🚫 <strong>Não se Aplica:</strong> permite que o motorista marque N/A para este item.
       </div>
@@ -259,7 +327,7 @@
   </div>
 </div>
 
-<!-- ========== MODAL: NOVO USUÁRIO ========== -->
+<!-- MODAL: NOVO USUÁRIO -->
 <div id="modal-usuario" class="modal-backdrop hidden">
   <div class="modal" style="max-width:480px">
     <div class="modal-header">
@@ -267,61 +335,22 @@
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-
-      <div id="usuario-modal-erro" class="hidden" style="
-        background:var(--cor-reprovado-dim);
-        border:1px solid var(--cor-reprovado);
-        color:var(--cor-reprovado);
-        border-radius:var(--radius-sm);
-        padding:10px 14px;
-        font-size:13px;
-        margin-bottom:16px;
-      "></div>
-
+      <div id="usuario-modal-erro" class="hidden" style="background:var(--cor-reprovado-dim);border:1px solid var(--cor-reprovado);color:var(--cor-reprovado);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
       <div class="form-group">
         <label class="form-label" for="usuario-nome">Nome completo <span class="req">*</span></label>
         <input type="text" id="usuario-nome" class="form-control" placeholder="Ex: João Silva" autocomplete="off">
       </div>
-
       <div class="form-group">
         <label class="form-label" for="usuario-email">E-mail <span class="req">*</span></label>
         <input type="email" id="usuario-email" class="form-control" placeholder="usuario@email.com" autocomplete="off">
       </div>
-
       <div class="form-group">
-        <label class="form-label" for="usuario-senha">Senha inicial <span class="req">*</span></label>
+        <label class="form-label" for="usuario-senha">Senha temporária <span class="req">*</span></label>
         <div style="position:relative">
-          <input
-            type="password"
-            id="usuario-senha"
-            class="form-control"
-            placeholder="Mínimo 6 caracteres"
-            autocomplete="new-password"
-            style="padding-right:44px"
-          >
-          <button
-            type="button"
-            id="toggle-usuario-senha"
-            style="
-              position:absolute;right:12px;top:50%;transform:translateY(-50%);
-              background:none;border:none;cursor:pointer;font-size:16px;
-              color:var(--cor-texto-3);padding:0;
-            "
-          >👁️</button>
+          <input type="password" id="usuario-senha" class="form-control" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:44px">
+          <button type="button" id="toggle-usuario-senha" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--cor-texto-3);padding:0;">👁️</button>
         </div>
-        <span class="form-hint">O usuário poderá alterar a senha depois pelo link "Esqueceu a senha?" na tela de login.</span>
-      </div>
-
-      <div style="
-        padding:12px 14px;
-        background:var(--cor-alerta-dim);
-        border:1px solid var(--cor-alerta);
-        border-radius:var(--radius-sm);
-        font-size:12px;
-        color:var(--cor-alerta);
-        line-height:1.6;
-      ">
-        ⚠️ Após criar o usuário, você será <strong>desconectado automaticamente</strong> e precisará fazer login novamente.
+        <span class="form-hint">O usuário será obrigado a criar uma nova senha no primeiro acesso.</span>
       </div>
     </div>
     <div class="modal-footer">
@@ -331,9 +360,18 @@
   </div>
 </div>
 
-<!-- Toast container -->
 <div id="toast-container"></div>
 
+<script type="module">
+  const selAno = document.getElementById('dash-ano');
+  const anoAtual = new Date().getFullYear();
+  for (let a = anoAtual; a >= anoAtual - 4; a--) {
+    const opt = document.createElement('option');
+    opt.value = a; opt.textContent = a;
+    selAno.appendChild(opt);
+  }
+  document.getElementById('dash-mes').value = new Date().getMonth() + 1;
+</script>
 <script type="module" src="../js/admin.js"></script>
 </body>
 </html>
