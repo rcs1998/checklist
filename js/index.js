@@ -3,11 +3,15 @@
 // ============================================================
 import { db, auth } from "./firebase-config.js";
 import {
-  collection, getDocs, addDoc, doc, getDoc,
+  collection, getDocs, addDoc, doc,
   query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { toast, normalizarPlaca, validarPlaca, calcularResultado, formatarDataHora, exportarPDF, gerarHTMLPDF } from "./utils.js";
+import {
+  toast, normalizarPlaca, validarPlaca,
+  calcularResultado, formatarDataHora,
+  exportarPDF, gerarHTMLPDF
+} from "./utils.js";
 
 // ---------- Estado ----------
 let placasCadastradas = [];
@@ -33,45 +37,54 @@ const listaItens  = document.getElementById('lista-itens');
 
 // ---------- Inicialização ----------
 async function init() {
-  await carregarPlacas();
-  await carregarItens();
+  await Promise.all([carregarPlacas(), carregarItens()]);
 
-  // Verificar se usuário está logado para mostrar link admin
   onAuthStateChanged(auth, (user) => {
-    if (user) {
-      acessoAdmin?.classList.remove('hidden');
-    }
+    if (user) acessoAdmin?.classList.remove('hidden');
   });
 }
 
 async function carregarPlacas() {
   try {
-    const snap = await getDocs(query(collection(db, 'placas'), where('ativo', '==', true)));
+    const snap = await getDocs(
+      query(collection(db, 'placas'), where('ativo', '==', true))
+    );
     placasCadastradas = snap.docs.map(d => d.data().placa.toUpperCase());
   } catch (e) {
+    console.error('Erro ao carregar placas:', e);
     toast('Erro ao carregar placas. Verifique a conexão.', 'error');
   }
 }
 
 async function carregarItens() {
   try {
+    // Carregar seções e itens em paralelo
     const [snapSecoes, snapItens] = await Promise.all([
       getDocs(query(collection(db, 'secoes'), orderBy('ordem'))),
-      getDocs(query(collection(db, 'itens'), where('ativo', '==', true), orderBy('ordem')))
+      getDocs(query(collection(db, 'itens'), orderBy('ordem')))
     ]);
+
     secoes = snapSecoes.docs.map(d => ({ id: d.id, ...d.data() }));
-    itens  = snapItens.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Filtrar apenas itens ativos no cliente (evita necessidade de índice composto)
+    itens = snapItens.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(i => i.ativo !== false);
+
+    if (itens.length === 0) {
+      toast('Nenhum item de checklist encontrado. Verifique se o banco foi populado.', 'error');
+    }
   } catch (e) {
-    toast('Erro ao carregar itens do checklist.', 'error');
+    console.error('Erro ao carregar itens:', e);
+    toast('Erro ao carregar itens do checklist. Verifique a conexão.', 'error');
   }
 }
 
 // ---------- Iniciar Checklist ----------
 btnIniciar?.addEventListener('click', () => {
-  const placa = normalizarPlaca(inputPlaca.value);
+  const placa     = normalizarPlaca(inputPlaca.value);
   const motorista = inputMot.value.trim();
 
-  // Validações
   let ok = true;
   erroPlaca.classList.add('hidden');
   inputPlaca.classList.remove('error');
@@ -99,20 +112,30 @@ btnIniciar?.addEventListener('click', () => {
   }
   if (!ok) return;
 
-  // Renderizar formulário de checklist
+  if (itens.length === 0) {
+    toast('Nenhum item carregado. Recarregue a página e tente novamente.', 'error');
+    return;
+  }
+
   renderizarFormChecklist();
   formInfo.classList.add('hidden');
   secaoForm.classList.remove('hidden');
+
+  // Atualiza badge da placa
+  const badge = document.getElementById('placa-badge');
+  if (badge) badge.textContent = placa;
 });
 
 // ---------- Renderizar itens ----------
 function renderizarFormChecklist() {
   listaItens.innerHTML = '';
-  respostas = {};
+  respostas   = {};
   observacoes = {};
 
   for (const secao of secoes) {
-    const itensSecao = itens.filter(i => i.secaoId === secao.id).sort((a, b) => a.ordem - b.ordem);
+    const itensSecao = itens
+      .filter(i => i.secaoId === secao.id)
+      .sort((a, b) => a.ordem - b.ordem);
     if (itensSecao.length === 0) continue;
 
     const secaoEl = document.createElement('div');
@@ -158,7 +181,9 @@ function criarItemEl(item) {
     </div>
     <div class="item-parametro">${item.parametro}</div>
     <div class="item-badges">
-      ${item.impeditivo ? '<span class="badge badge-imp">⛔ Impeditivo</span>' : '<span class="badge" style="background:rgba(0,200,150,.1);color:#00C896;">✅ Não Impeditivo</span>'}
+      ${item.impeditivo
+        ? '<span class="badge badge-imp">⛔ Impeditivo</span>'
+        : '<span class="badge" style="background:rgba(0,168,122,.1);color:#00A87A;">✅ Não Impeditivo</span>'}
       ${item.permiteNaoAplica ? '<span class="badge badge-na">Permite N/A</span>' : ''}
     </div>
     <div class="radio-opcoes" style="margin-top:12px;">
@@ -176,22 +201,16 @@ function criarItemEl(item) {
       <textarea placeholder="Observação (opcional)..." id="obs-${item.id}" maxlength="300"></textarea>
     </div>`;
 
-  // Eventos de seleção
   div.querySelectorAll(`input[name="item-${item.id}"]`).forEach(radio => {
     radio.addEventListener('change', () => {
       respostas[item.id] = radio.value;
-      // Atualiza classe visual
       div.classList.remove('is-conforme', 'is-naoconforme', 'is-naaaplica');
       if (radio.value === 'c')  div.classList.add('is-conforme');
       if (radio.value === 'nc') div.classList.add('is-naoconforme');
       if (radio.value === 'na') div.classList.add('is-naaaplica');
-      // Mostrar campo obs para não conforme
       const obsWrap = document.getElementById(`obs-wrap-${item.id}`);
-      if (radio.value === 'nc') {
-        obsWrap?.classList.remove('hidden');
-      } else {
-        obsWrap?.classList.add('hidden');
-      }
+      if (radio.value === 'nc') obsWrap?.classList.remove('hidden');
+      else obsWrap?.classList.add('hidden');
     });
   });
 
@@ -204,15 +223,13 @@ function criarItemEl(item) {
 
 // ---------- Enviar Checklist ----------
 btnEnviar?.addEventListener('click', async () => {
-  // Verificar se todos os itens foram respondidos
   const naoRespondidos = itens.filter(i => !respostas[i.id]);
   if (naoRespondidos.length > 0) {
-    // Destacar item não respondido
     const primeiro = naoRespondidos[0];
     const el = document.getElementById(`item-wrap-${primeiro.id}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el?.style.setProperty('border-color', 'var(--cor-alerta)');
-    setTimeout(() => el?.style.removeProperty('border-color'), 2000);
+    el?.style.setProperty('outline', '2px solid var(--cor-reprovado)');
+    setTimeout(() => el?.style.removeProperty('outline'), 2500);
     toast(`Responda todos os itens. Faltam ${naoRespondidos.length} item(s).`, 'error');
     return;
   }
@@ -220,11 +237,10 @@ btnEnviar?.addEventListener('click', async () => {
   const placa     = normalizarPlaca(inputPlaca.value);
   const motorista = inputMot.value.trim();
 
-  // Calcular resultado
   const { aprovado, percentual, conformes, totalItens } = calcularResultado(respostas, itens);
   const resultado = aprovado ? 'aprovado' : 'reprovado';
 
-  btnEnviar.disabled = true;
+  btnEnviar.disabled    = true;
   btnEnviar.textContent = 'Salvando...';
 
   try {
@@ -256,37 +272,30 @@ btnEnviar?.addEventListener('click', async () => {
     toast('Erro ao salvar. Tente novamente.', 'error');
     console.error(e);
   } finally {
-    btnEnviar.disabled = false;
-    btnEnviar.textContent = 'Enviar Checklist';
+    btnEnviar.disabled    = false;
+    btnEnviar.textContent = '✅ Enviar Checklist';
   }
 });
 
 // ---------- Exibir Resultado ----------
 function exibirResultado(data) {
-  const banner  = document.getElementById('resultado-banner');
-  const icone   = document.getElementById('resultado-icone');
-  const titulo  = document.getElementById('resultado-titulo');
-  const placa   = document.getElementById('resultado-placa');
-  const motor   = document.getElementById('resultado-motorista');
-  const datahr  = document.getElementById('resultado-datahora');
-  const perc    = document.getElementById('resultado-percentual');
-
+  const banner = document.getElementById('resultado-banner');
   banner.className = `resultado-banner ${data.resultado}`;
-  icone.textContent = data.resultado === 'aprovado' ? '✅' : '❌';
-  titulo.textContent = data.resultado === 'aprovado' ? 'APROVADO' : 'REPROVADO';
-  placa.textContent  = data.placa;
-  motor.textContent  = data.motorista;
-  datahr.textContent = formatarDataHora(data.criadoEm);
-  perc.textContent   = `${data.percentual}% de conformidade`;
+  document.getElementById('resultado-icone').textContent    = data.resultado === 'aprovado' ? '✅' : '❌';
+  document.getElementById('resultado-titulo').textContent   = data.resultado === 'aprovado' ? 'APROVADO' : 'REPROVADO';
+  document.getElementById('resultado-placa').textContent    = data.placa;
+  document.getElementById('resultado-motorista').textContent = data.motorista;
+  document.getElementById('resultado-datahora').textContent  = formatarDataHora(data.criadoEm);
+  document.getElementById('resultado-percentual').textContent = `${data.percentual}% de conformidade`;
 }
 
 // ---------- Novo Checklist ----------
 btnNovo?.addEventListener('click', () => {
   checklistSubmetido = null;
-  respostas = {};
+  respostas   = {};
   observacoes = {};
   inputPlaca.value = '';
-  inputMot.value = '';
+  inputMot.value   = '';
   secaoResult.classList.add('hidden');
   formInfo.classList.remove('hidden');
   window.scrollTo({ top: 0, behavior: 'smooth' });
