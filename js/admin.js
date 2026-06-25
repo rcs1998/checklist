@@ -3,7 +3,7 @@
 // ============================================================
 import { db, auth } from "./firebase-config.js";
 import {
-  collection, getDocs, addDoc, updateDoc,
+  collection, getDocs, addDoc, updateDoc, deleteDoc,
   doc, query, orderBy, serverTimestamp, getDoc, setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
@@ -27,6 +27,7 @@ let checklists     = [];
 let usuarios       = [];
 let checklistDetalhe = null;
 let usuarioAtual   = null;
+let isSuperAdmin   = false;   // true somente para o criador (sem criadoPor no doc)
 let chartDonut     = null;
 let chartLine      = null;
 
@@ -43,12 +44,21 @@ onAuthStateChanged(auth, async (user) => {
   // Verificar troca de senha obrigatória
   try {
     const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-    if (userDoc.exists() && userDoc.data().trocarSenha === true) {
-      mostrarTrocaSenha();
-      return;
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      if (data.trocarSenha === true) {
+        mostrarTrocaSenha();
+        return;
+      }
+      // Super admin = criado diretamente no Firebase (sem campo criadoPor)
+      isSuperAdmin = !data.criadoPor;
+    } else {
+      // Sem doc = admin criado direto no console do Firebase → é o fundador
+      isSuperAdmin = true;
     }
   } catch (e) {
-    // usuário admin criado direto no console, sem doc — permite acesso
+    // sem doc → fundador
+    isSuperAdmin = true;
   }
 
   init();
@@ -180,6 +190,7 @@ function renderizarHistorico(lista) {
       <div class="historico-right">
         <span class="badge badge-${c.resultado}">${c.resultado === 'aprovado' ? '✅ Aprovado' : '❌ Reprovado'}</span>
         <span style="font-size:12px;color:var(--cor-texto-3)">${c.percentual ?? 0}% conformidade</span>
+        ${isSuperAdmin ? `<button class="btn btn-danger btn-sm" style="margin-top:2px" onclick="event.stopPropagation();excluirChecklist('${c.id}')">🗑️ Excluir</button>` : ''}
       </div>
     </div>`).join('');
 }
@@ -219,12 +230,38 @@ window.verDetalhe = async (id) => {
     }
   }
   abrirModal('modal-detalhe');
+
+  // Botão excluir só para super admin
+  const btnExcluir = document.getElementById('btn-det-excluir');
+  if (btnExcluir) {
+    btnExcluir.classList.toggle('hidden', !isSuperAdmin);
+    btnExcluir.onclick = () => excluirChecklist(c.id);
+  }
 };
 
 document.getElementById('btn-det-pdf')?.addEventListener('click', () => {
   if (!checklistDetalhe) return;
   exportarPDF(gerarHTMLPDF(checklistDetalhe, itens, secoes), `checklist-${checklistDetalhe.placa}`);
 });
+
+window.excluirChecklist = async (id) => {
+  if (!isSuperAdmin) { toast('Sem permissão para excluir.', 'error'); return; }
+  if (!confirmar('⚠️ Deseja excluir permanentemente este checklist? Esta ação não pode ser desfeita.')) return;
+  try {
+    await deleteDoc(doc(db, 'checklists', id));
+    // Fecha modal se estiver aberto para este item
+    if (checklistDetalhe?.id === id) {
+      fecharModal('modal-detalhe');
+      checklistDetalhe = null;
+    }
+    toast('Checklist excluído.', 'success');
+    await carregarChecklists();
+    renderizarEstatisticas();
+  } catch (e) {
+    console.error(e);
+    toast('Erro ao excluir checklist.', 'error');
+  }
+};
 
 // Filtros histórico
 ['filtro-busca','filtro-resultado','filtro-placa-hist'].forEach(id => {
@@ -492,11 +529,16 @@ function renderizarRankingPlacas(lista) {
 
 // Eventos filtros dashboard
 document.getElementById('dash-filtro-tipo')?.addEventListener('change', function() {
-  const tipo = this.value;
+  const tipo    = this.value;
   const fMes    = document.getElementById('dash-filtros-mes');
   const fCustom = document.getElementById('dash-filtros-custom');
-  if (fMes)    fMes.style.display    = tipo === 'mes'    ? 'flex' : 'none';
-  if (fCustom) fCustom.style.display = tipo === 'custom' ? 'flex' : 'none';
+  if (tipo === 'mes') {
+    fMes?.classList.remove('hidden');
+    fCustom?.classList.add('hidden');
+  } else {
+    fMes?.classList.add('hidden');
+    fCustom?.classList.remove('hidden');
+  }
   renderizarDashboard();
 });
 ['dash-mes','dash-ano','dash-de','dash-ate'].forEach(id => {
