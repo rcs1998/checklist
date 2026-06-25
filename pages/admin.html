@@ -170,10 +170,16 @@
       </div>
     </div>
 
-    <!-- Ranking NC -->
-    <div class="dash-chart-card" style="margin-bottom:24px">
+    <!-- Ranking NC Itens -->
+    <div class="dash-chart-card" style="margin-bottom:20px">
       <div class="dash-chart-title">🚨 Top 10 — Itens Mais Não Conformes</div>
       <div id="dash-nc-lista"></div>
+    </div>
+
+    <!-- Ranking Placas -->
+    <div class="dash-chart-card" style="margin-bottom:24px">
+      <div class="dash-chart-title">🏆 Ranking de Placas — Mais Reprovações</div>
+      <div id="dash-ranking-placas"></div>
     </div>
 
   </div>
@@ -263,6 +269,11 @@
         <input type="text" id="placa-input" class="form-control" placeholder="ABC1234" maxlength="8"
           style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em">
         <span class="form-hint">Formato: ABC1234 (antiga) ou ABC1D23 (Mercosul)</span>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="placa-modelo">Modelo do Veículo</label>
+        <input type="text" id="placa-modelo" class="form-control" placeholder="Ex: Toyota Corolla 2022" maxlength="80">
+        <span class="form-hint">Opcional. Aparecerá na tela de confirmação e no resultado.</span>
       </div>
     </div>
     <div class="modal-footer">
