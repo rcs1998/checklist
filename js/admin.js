@@ -62,6 +62,10 @@ onAuthStateChanged(auth, async (user) => {
   }
 
   init();
+
+  // Aba Auditoria: visível somente para super admin
+  const tabAudit = document.querySelector('[data-tab="tab-auditoria"]');
+  if (tabAudit) tabAudit.style.display = isSuperAdmin ? '' : 'none';
 });
 
 // ---------- Troca de senha obrigatória ----------
@@ -138,7 +142,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const tabId = btn.dataset.tab;
     document.getElementById(tabId)?.classList.add('active');
     if (tabId === 'tab-dashboard')  renderizarDashboard();
-    if (tabId === 'tab-auditoria')  carregarAuditoria();
+    if (tabId === 'tab-auditoria' && isSuperAdmin) carregarAuditoria();
   });
 });
 
@@ -889,21 +893,41 @@ async function registrarAuditoria(acao, detalhes = {}) {
 let auditoriaLogs = [];
 
 async function carregarAuditoria() {
+  if (!isSuperAdmin) {
+    toast('Acesso restrito ao super administrador.', 'error');
+    return;
+  }
+
   const loading = document.getElementById('audit-loading');
   const lista   = document.getElementById('audit-lista');
   loading?.classList.remove('hidden');
-  lista && (lista.innerHTML = '');
+  if (lista) lista.innerHTML = '';
   document.getElementById('audit-empty')?.classList.add('hidden');
 
   try {
-    const snap = await getDocs(
-      query(collection(db, 'auditoria'), orderBy('criadoEm', 'desc'))
-    );
-    auditoriaLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    // Sem orderBy para evitar exigir índice composto no Firestore
+    const snap = await getDocs(collection(db, 'auditoria'));
+    auditoriaLogs = snap.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => {
+        const ta = a.criadoEm?.toDate?.() ?? new Date(a.criadoEm ?? 0);
+        const tb = b.criadoEm?.toDate?.() ?? new Date(b.criadoEm ?? 0);
+        return tb - ta; // mais recente primeiro
+      });
     renderizarAuditoria(auditoriaLogs);
   } catch (e) {
     console.error('Erro auditoria:', e);
-    toast('Erro ao carregar auditoria.', 'error');
+    if (lista) lista.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">⚠️</div>
+        <p>Erro ao carregar auditoria.</p>
+        <p style="font-size:12px;color:var(--cor-texto-3);margin-top:8px">
+          Verifique as regras do Firestore:<br>
+          <code style="background:var(--cor-surface-2);padding:2px 6px;border-radius:4px;font-size:11px">
+            match /auditoria/{doc} { allow read, write: if request.auth != null; }
+          </code>
+        </p>
+      </div>`;
   } finally {
     loading?.classList.add('hidden');
   }
@@ -971,13 +995,22 @@ function renderizarAuditoria(lista) {
 function aplicarFiltrosAuditoria() {
   const busca = (document.getElementById('audit-busca')?.value || '').toLowerCase();
   const tipo  = document.getElementById('audit-filtro-acao')?.value || '';
+
+  const CATEGORIAS = {
+    placa:       ['placa_cadastrada','placa_editada','placa_inativada','placa_ativada'],
+    item:        ['item_cadastrado','item_editado','item_inativado','item_reativado'],
+    usuario:     ['usuario_cadastrado','usuario_inativado','usuario_ativado'],
+    checklist:   ['checklist_excluido'],
+    senha:       ['senha_reset_enviada'],
+  };
+
   renderizarAuditoria(auditoriaLogs.filter(log => {
-    const matchTipo  = !tipo || log.acao?.includes(tipo.replace('placa','placa').replace('item','item').replace('usuario','usuario').replace('checklist','checklist').replace('senha','senha'));
+    const matchTipo  = !tipo || (CATEGORIAS[tipo] || []).includes(log.acao);
     const matchBusca = !busca ||
-      log.feitorPor?.toLowerCase().includes(busca) ||
-      log.acao?.toLowerCase().includes(busca) ||
-      log.placa?.toLowerCase().includes(busca) ||
-      log.itemNome?.toLowerCase().includes(busca) ||
+      log.feitorPor?.toLowerCase().includes(busca)    ||
+      log.acao?.toLowerCase().includes(busca)         ||
+      log.placa?.toLowerCase().includes(busca)        ||
+      log.itemNome?.toLowerCase().includes(busca)     ||
       log.usuarioEmail?.toLowerCase().includes(busca) ||
       log.usuarioNome?.toLowerCase().includes(busca);
     return matchTipo && matchBusca;
