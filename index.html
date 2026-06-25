@@ -10,62 +10,43 @@
 </head>
 <body>
 
-<!-- NAVBAR -->
 <nav class="navbar">
   <div class="navbar-brand">
     <div class="brand-icon">🚗</div>
     Checklist de Veículos
   </div>
   <div class="navbar-actions">
-    <a id="acesso-admin" href="pages/admin.html" class="btn btn-ghost btn-sm hidden">
-      ⚙️ Painel Admin
-    </a>
+    <a id="acesso-admin" href="pages/admin.html" class="btn btn-ghost btn-sm hidden">⚙️ Painel Admin</a>
     <a href="pages/login.html" class="btn btn-ghost btn-sm">🔐 Login</a>
   </div>
 </nav>
 
-<!-- CONTEÚDO PRINCIPAL -->
 <main class="page-checklist">
 
-  <!-- ===== SEÇÃO 1: INFORMAÇÕES DO VEÍCULO ===== -->
-  <section id="secao-info" class="secao-ativa">
+  <!-- SEÇÃO 1: DADOS INICIAIS -->
+  <section id="secao-info">
     <h1>Inspeção do Veículo</h1>
     <p class="subtitle">Preencha os dados abaixo para iniciar o checklist de inspeção.</p>
-
     <div id="form-info">
       <div class="card">
-        <div class="card-header">
-          <h2>📋 Dados da Inspeção</h2>
-        </div>
+        <div class="card-header"><h2>📋 Dados da Inspeção</h2></div>
         <div class="card-body">
           <div class="checklist-info-grid">
             <div class="form-group">
               <label class="form-label" for="input-placa">Placa do Veículo <span class="req">*</span></label>
-              <input
-                type="text"
-                id="input-placa"
-                class="form-control"
-                placeholder="ABC1234 ou ABC1D23"
-                maxlength="8"
-                autocomplete="off"
-                style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.08em;font-size:16px"
-              >
+              <input type="text" id="input-placa" class="form-control"
+                placeholder="ABC1234 ou ABC1D23" maxlength="8" autocomplete="off"
+                style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;letter-spacing:.08em;font-size:16px">
               <span class="form-error" id="erro-placa"></span>
               <span class="form-hint">A placa deve estar previamente cadastrada no sistema.</span>
             </div>
             <div class="form-group">
               <label class="form-label" for="input-motorista">Nome do Motorista <span class="req">*</span></label>
-              <input
-                type="text"
-                id="input-motorista"
-                class="form-control"
-                placeholder="Nome completo"
-                autocomplete="name"
-              >
-              <span class="form-error">Informe o nome do motorista.</span>
+              <input type="text" id="input-motorista" class="form-control"
+                placeholder="Nome completo" autocomplete="name">
+              <span class="form-error" id="erro-motorista">Informe o nome do motorista.</span>
             </div>
           </div>
-
           <button id="btn-iniciar" class="btn btn-primary btn-lg" style="width:100%">
             🚀 Iniciar Checklist
           </button>
@@ -74,26 +55,27 @@
     </div>
   </section>
 
-  <!-- ===== SEÇÃO 2: FORMULÁRIO DE CHECKLIST ===== -->
+  <!-- SEÇÃO 2: FORMULÁRIO DE CHECKLIST -->
   <section id="secao-form" class="hidden">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px">
       <div>
         <h1 style="margin-bottom:4px">Inspeção</h1>
-        <p class="subtitle" style="margin-bottom:0">Avalie cada item como <strong style="color:var(--cor-aprovado)">Conforme</strong> ou <strong style="color:var(--cor-reprovado)">Não Conforme</strong>.</p>
+        <p class="subtitle" style="margin-bottom:0">
+          Avalie cada item como <strong style="color:var(--cor-aprovado)">Conforme</strong>
+          ou <strong style="color:var(--cor-reprovado)">Não Conforme</strong>.
+        </p>
       </div>
-      <div
-        id="placa-badge"
-        style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;background:var(--cor-surface);border:2px solid var(--cor-borda);color:var(--cor-texto);padding:8px 20px;border-radius:8px;letter-spacing:.08em"
-      ></div>
+      <div id="placa-badge"
+        style="font-family:'JetBrains Mono',monospace;font-size:18px;font-weight:700;
+               background:var(--cor-surface);border:2px solid var(--cor-borda);color:var(--cor-texto);
+               padding:8px 20px;border-radius:8px;letter-spacing:.08em"></div>
     </div>
 
-    <!-- Lista de itens gerada pelo JS -->
     <div id="lista-itens"></div>
 
-    <!-- Botão enviar -->
     <div style="margin-top:32px;padding-top:24px;border-top:1px solid var(--cor-borda)">
-      <button id="btn-enviar" class="btn btn-primary btn-lg" style="width:100%">
-        ✅ Enviar Checklist
+      <button id="btn-ir-confirmacao" class="btn btn-primary btn-lg" style="width:100%">
+        ➡️ Revisar e Confirmar Envio
       </button>
       <p style="text-align:center;font-size:13px;color:var(--cor-texto-3);margin-top:10px">
         Todos os itens precisam ser respondidos antes de enviar.
@@ -101,12 +83,99 @@
     </div>
   </section>
 
-  <!-- ===== SEÇÃO 3: RESULTADO ===== -->
+  <!-- SEÇÃO 3: CONFIRMAÇÃO -->
+  <section id="secao-confirmacao" class="hidden">
+    <div style="margin-bottom:28px">
+      <button id="btn-voltar-form" class="btn btn-ghost btn-sm" style="margin-bottom:16px">← Voltar ao Checklist</button>
+      <h1 style="margin-bottom:4px">Confirmar Envio</h1>
+      <p class="subtitle">Verifique os dados antes de finalizar a inspeção.</p>
+    </div>
+
+    <!-- Card do veículo -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header"><h2>🚗 Veículo Inspecionado</h2></div>
+      <div class="card-body">
+
+        <!-- Exibição -->
+        <div id="confirm-veiculo-display">
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap;margin-bottom:14px">
+            <div id="confirm-placa-text"
+              style="font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;
+                     background:var(--cor-surface-2);border:2px solid var(--cor-borda);
+                     border-radius:var(--radius-md);padding:8px 24px;letter-spacing:.1em;color:var(--cor-texto)"></div>
+            <div>
+              <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Modelo</div>
+              <div id="confirm-modelo-text" style="font-size:16px;font-weight:600;color:var(--cor-texto)"></div>
+            </div>
+          </div>
+          <button id="btn-alterar-placa" class="btn btn-ghost btn-sm">✏️ Alterar placa</button>
+        </div>
+
+        <!-- Formulário de troca de placa -->
+        <div id="confirm-veiculo-edit" class="hidden">
+          <div style="padding:10px 14px;background:var(--cor-alerta-dim);border:1px solid var(--cor-alerta);
+                      border-radius:var(--radius-sm);font-size:13px;color:var(--cor-alerta);margin-bottom:16px">
+            ⚠️ As respostas já preenchidas serão mantidas. Apenas a placa e o modelo serão alterados.
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label" for="confirm-input-placa">Nova Placa <span class="req">*</span></label>
+            <input type="text" id="confirm-input-placa" class="form-control"
+              placeholder="ABC1234 ou ABC1D23" maxlength="8" autocomplete="off"
+              style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;
+                     font-weight:700;letter-spacing:.08em;font-size:16px;max-width:260px">
+            <span class="form-error" id="confirm-erro-placa" style="display:none"></span>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button id="btn-confirmar-troca-placa" class="btn btn-primary btn-sm">✅ Confirmar troca</button>
+            <button id="btn-cancelar-troca-placa" class="btn btn-ghost btn-sm">Cancelar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resumo -->
+    <div class="card" style="margin-bottom:24px">
+      <div class="card-header"><h2>📋 Resumo da Inspeção</h2></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px;margin-bottom:16px">
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Motorista</div>
+            <div id="confirm-motorista" style="font-size:14px;font-weight:600;color:var(--cor-texto)"></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Conformes</div>
+            <div id="confirm-conformes" style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cor-aprovado)"></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Não Conformes</div>
+            <div id="confirm-naoconformes" style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cor-reprovado)"></div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Pendentes</div>
+            <div id="confirm-pendentes" style="font-size:22px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--cor-alerta)"></div>
+          </div>
+        </div>
+        <div id="confirm-alerta-pendentes" class="hidden"
+          style="padding:10px 14px;background:var(--cor-alerta-dim);border:1px solid var(--cor-alerta);
+                 border-radius:var(--radius-sm);font-size:13px;color:var(--cor-alerta)">
+          ⚠️ Ainda há itens não respondidos. Volte e responda todos antes de enviar.
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap">
+      <button id="btn-voltar-form2" class="btn btn-ghost" style="flex:1">← Voltar ao Checklist</button>
+      <button id="btn-confirmar-envio" class="btn btn-primary btn-lg" style="flex:2">🚀 Confirmar e Enviar</button>
+    </div>
+  </section>
+
+  <!-- SEÇÃO 4: RESULTADO -->
   <section id="secao-resultado" class="hidden">
     <div id="resultado-banner" class="resultado-banner">
       <div id="resultado-icone" class="resultado-icone"></div>
       <div id="resultado-titulo" class="resultado-titulo"></div>
       <div class="resultado-placa" id="resultado-placa"></div>
+      <div id="resultado-modelo-wrap" style="font-size:14px;color:var(--cor-texto-2);margin-top:-6px;font-weight:500"></div>
       <div class="resultado-info">
         <div class="resultado-info-item">
           <span class="label">Motorista</span>
@@ -122,30 +191,15 @@
         </div>
       </div>
     </div>
-
     <div style="display:flex;gap:12px;margin-top:24px;flex-wrap:wrap">
-      <button id="btn-pdf" class="btn btn-ghost" style="flex:1">
-        📄 Exportar PDF
-      </button>
-      <button id="btn-novo" class="btn btn-primary" style="flex:1">
-        🔄 Novo Checklist
-      </button>
+      <button id="btn-pdf" class="btn btn-ghost" style="flex:1">📄 Exportar PDF</button>
+      <button id="btn-novo" class="btn btn-primary" style="flex:1">🔄 Novo Checklist</button>
     </div>
   </section>
 
 </main>
 
-<!-- Toast container -->
 <div id="toast-container"></div>
-
-<script type="module">
-  // Sincronizar placa no badge ao digitar
-  document.getElementById('input-placa').addEventListener('input', function() {
-    this.value = this.value.toUpperCase();
-    const badge = document.getElementById('placa-badge');
-    if (badge) badge.textContent = this.value || '—';
-  });
-</script>
 <script type="module" src="js/index.js"></script>
 </body>
 </html>
