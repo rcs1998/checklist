@@ -1,5 +1,5 @@
 // ============================================================
-// INDEX.JS — Checklist com tela de confirmação e troca de placa
+// INDEX.JS — Checklist com modal de confirmação
 // ============================================================
 import { db, auth } from "./firebase-config.js";
 import {
@@ -13,27 +13,44 @@ import {
   exportarPDF, gerarHTMLPDF
 } from "./utils.js";
 
-// ---------- Estado global ----------
-let placasMap         = {};   // { "ABC1234": { placa, modelo } }
-let secoes            = [];
-let itens             = [];
-let respostas         = {};
-let observacoes       = {};
-let placaAtual        = '';
-let modeloAtual       = '';
+// ---------- Estado ----------
+let placasMap          = {};
+let secoes             = [];
+let itens              = [];
+let respostas          = {};
+let observacoes        = {};
+let placaAtual         = '';
+let modeloAtual        = '';
 let checklistSubmetido = null;
 
 // ---------- Elementos ----------
-const inputPlaca      = document.getElementById('input-placa');
-const inputMot        = document.getElementById('input-motorista');
-const erroPlaca       = document.getElementById('erro-placa');
-const erroMot         = document.getElementById('erro-motorista');
-const secaoInfo       = document.getElementById('secao-info');
-const secaoForm       = document.getElementById('secao-form');
-const secaoConfirm    = document.getElementById('secao-confirmacao');
-const secaoResult     = document.getElementById('secao-resultado');
-const listaItens      = document.getElementById('lista-itens');
-const placaBadge      = document.getElementById('placa-badge');
+const inputPlaca  = document.getElementById('input-placa');
+const inputMot    = document.getElementById('input-motorista');
+const erroPlaca   = document.getElementById('erro-placa');
+const erroMot     = document.getElementById('erro-motorista');
+const listaItens  = document.getElementById('lista-itens');
+
+// ---------- Utilitário: mostrar/ocultar seção ----------
+function mostrarSecao(id) {
+  ['secao-info','secao-form','secao-resultado'].forEach(s => {
+    document.getElementById(s)?.classList.toggle('hidden', s !== id);
+  });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ---------- Utilitário: abrir/fechar modal confirmação ----------
+function abrirModalConfirmacao() {
+  document.getElementById('modal-confirmacao')?.classList.remove('hidden');
+}
+function fecharModalConfirmacao() {
+  document.getElementById('modal-confirmacao')?.classList.add('hidden');
+  // Garante que edit placa fica fechado ao reabrir
+  document.getElementById('confirm-veiculo-edit')?.classList.add('hidden');
+  const inp = document.getElementById('confirm-input-placa');
+  if (inp) inp.value = '';
+  const err = document.getElementById('confirm-erro-placa');
+  if (err) err.style.display = 'none';
+}
 
 // ---------- Init ----------
 async function init() {
@@ -47,7 +64,6 @@ async function init() {
   });
 }
 
-// ---------- Carregar placas (inclui modelo) ----------
 async function carregarPlacas() {
   try {
     const snap = await getDocs(
@@ -55,10 +71,10 @@ async function carregarPlacas() {
     );
     placasMap = {};
     snap.docs.forEach(d => {
-      const dados = d.data();
-      placasMap[dados.placa.toUpperCase()] = {
-        placa: dados.placa.toUpperCase(),
-        modelo: dados.modelo || ''
+      const d2 = d.data();
+      placasMap[d2.placa.toUpperCase()] = {
+        placa:  d2.placa.toUpperCase(),
+        modelo: d2.modelo || ''
       };
     });
   } catch (e) {
@@ -67,7 +83,6 @@ async function carregarPlacas() {
   }
 }
 
-// ---------- Carregar itens e seções ----------
 async function carregarItens() {
   try {
     const [snapSec, snapItens] = await Promise.all([
@@ -85,14 +100,6 @@ async function carregarItens() {
   }
 }
 
-// ---------- Utilitário: mostrar seção ----------
-function mostrarSecao(id) {
-  ['secao-info','secao-form','secao-confirmacao','secao-resultado'].forEach(s => {
-    document.getElementById(s)?.classList.toggle('hidden', s !== id);
-  });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
 // ============================================================
 // SEÇÃO 1 → SEÇÃO 2: Iniciar checklist
 // ============================================================
@@ -101,7 +108,6 @@ document.getElementById('btn-iniciar')?.addEventListener('click', () => {
   const motorista = inputMot.value.trim();
   let ok = true;
 
-  // Reset erros
   erroPlaca.style.display = 'none';
   erroMot.style.display   = 'none';
   inputPlaca.classList.remove('error');
@@ -114,17 +120,17 @@ document.getElementById('btn-iniciar')?.addEventListener('click', () => {
   }
   if (!placa) {
     inputPlaca.classList.add('error');
-    erroPlaca.textContent = 'Informe a placa do veículo.';
+    erroPlaca.textContent   = 'Informe a placa do veículo.';
     erroPlaca.style.display = 'block';
     ok = false;
   } else if (!validarPlaca(placa)) {
     inputPlaca.classList.add('error');
-    erroPlaca.textContent = 'Formato inválido. Use ABC1234 ou ABC1D23.';
+    erroPlaca.textContent   = 'Formato inválido. Use ABC1234 ou ABC1D23.';
     erroPlaca.style.display = 'block';
     ok = false;
   } else if (!placasMap[placa]) {
     inputPlaca.classList.add('error');
-    erroPlaca.textContent = 'Placa não cadastrada no sistema.';
+    erroPlaca.textContent   = 'Placa não cadastrada no sistema.';
     erroPlaca.style.display = 'block';
     ok = false;
   }
@@ -135,35 +141,31 @@ document.getElementById('btn-iniciar')?.addEventListener('click', () => {
     return;
   }
 
-  // Define placa e modelo atuais
   placaAtual  = placa;
   modeloAtual = placasMap[placa]?.modelo || '';
 
-  // Atualiza badge
-  atualizarPlacaBadge();
+  // Zera respostas ao iniciar novo checklist
+  respostas   = {};
+  observacoes = {};
 
-  // Renderiza checklist (respostas zeradas apenas na primeira vez)
-  renderizarFormChecklist(false);
+  atualizarPlacaBadge();
+  renderizarFormChecklist();
   mostrarSecao('secao-form');
 });
 
 function atualizarPlacaBadge() {
-  if (placaBadge) {
-    placaBadge.textContent = modeloAtual
+  const badge = document.getElementById('placa-badge');
+  if (badge) {
+    badge.textContent = modeloAtual
       ? `${placaAtual} · ${modeloAtual}`
       : placaAtual;
   }
 }
 
 // ============================================================
-// RENDERIZAR CHECKLIST
+// RENDERIZAR CHECKLIST (preserva respostas existentes)
 // ============================================================
-function renderizarFormChecklist(resetarRespostas = true) {
-  if (resetarRespostas) {
-    respostas   = {};
-    observacoes = {};
-  }
-
+function renderizarFormChecklist() {
   listaItens.innerHTML = '';
 
   for (const secao of secoes) {
@@ -197,7 +199,6 @@ function criarItemEl(item) {
   div.className = 'item-checklist';
   div.id = `item-wrap-${item.id}`;
 
-  // Restaurar estado visual se já havia resposta
   const respAtual = respostas[item.id];
   const obsAtual  = observacoes[item.id] || '';
 
@@ -258,93 +259,75 @@ function criarItemEl(item) {
 }
 
 // ============================================================
-// SEÇÃO 2 → SEÇÃO 3: Ir para confirmação
+// BOTÃO "REVISAR E CONFIRMAR" → abre modal só se tudo preenchido
 // ============================================================
 document.getElementById('btn-ir-confirmacao')?.addEventListener('click', () => {
   const naoResp = itens.filter(i => !respostas[i.id]);
 
-  // Destaca primeiro item pendente (mas não bloqueia ida para confirmação)
   if (naoResp.length > 0) {
+    // Destaca o primeiro item pendente e bloqueia
     const el = document.getElementById(`item-wrap-${naoResp[0].id}`);
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    el?.style.setProperty('outline', '2px solid var(--cor-alerta)');
+    el?.style.setProperty('outline', '2px solid var(--cor-reprovado)');
     setTimeout(() => el?.style.removeProperty('outline'), 2500);
+    toast(
+      naoResp.length === 1
+        ? 'Ainda falta 1 item para responder.'
+        : `Ainda faltam ${naoResp.length} itens para responder.`,
+      'error'
+    );
+    return; // ← NÃO abre o modal
   }
 
-  preencherTelaConfirmacao();
-  mostrarSecao('secao-confirmacao');
+  preencherModalConfirmacao();
+  abrirModalConfirmacao();
 });
 
-function preencherTelaConfirmacao() {
-  // Placa e modelo
+function preencherModalConfirmacao() {
   document.getElementById('confirm-placa-text').textContent  = placaAtual;
   document.getElementById('confirm-modelo-text').textContent = modeloAtual || '—';
   document.getElementById('confirm-motorista').textContent   = inputMot.value.trim();
 
-  // Contadores
-  const conformes     = Object.values(respostas).filter(r => r === 'c').length;
-  const naoConformes  = Object.values(respostas).filter(r => r === 'nc').length;
-  const pendentes     = itens.filter(i => !respostas[i.id]).length;
+  const conformes    = Object.values(respostas).filter(r => r === 'c').length;
+  const naoConformes = Object.values(respostas).filter(r => r === 'nc').length;
+  const na           = Object.values(respostas).filter(r => r === 'na').length;
 
   document.getElementById('confirm-conformes').textContent    = conformes;
   document.getElementById('confirm-naoconformes').textContent = naoConformes;
-  document.getElementById('confirm-pendentes').textContent    = pendentes;
-
-  const alertaEl = document.getElementById('confirm-alerta-pendentes');
-  const btnEnviar = document.getElementById('btn-confirmar-envio');
-  if (pendentes > 0) {
-    alertaEl?.classList.remove('hidden');
-    if (btnEnviar) {
-      btnEnviar.disabled = true;
-      btnEnviar.textContent = `⚠️ Responda todos os itens (${pendentes} pendentes)`;
-    }
-  } else {
-    alertaEl?.classList.add('hidden');
-    if (btnEnviar) {
-      btnEnviar.disabled = false;
-      btnEnviar.textContent = '🚀 Confirmar e Enviar';
-    }
-  }
-
-  // Garante que o edit de placa começa fechado
-  document.getElementById('confirm-veiculo-display')?.classList.remove('hidden');
-  document.getElementById('confirm-veiculo-edit')?.classList.add('hidden');
-  const inpConfirm = document.getElementById('confirm-input-placa');
-  if (inpConfirm) inpConfirm.value = '';
-  const erroConfirm = document.getElementById('confirm-erro-placa');
-  if (erroConfirm) erroConfirm.style.display = 'none';
+  document.getElementById('confirm-na').textContent           = na;
 }
 
-// Voltar ao form (dois botões)
-['btn-voltar-form','btn-voltar-form2'].forEach(id => {
-  document.getElementById(id)?.addEventListener('click', () => {
-    mostrarSecao('secao-form');
-  });
+// ============================================================
+// MODAL: controles de fechar e voltar
+// ============================================================
+document.getElementById('btn-fechar-confirmacao')?.addEventListener('click', fecharModalConfirmacao);
+document.getElementById('btn-voltar-form')?.addEventListener('click', fecharModalConfirmacao);
+
+// Fechar ao clicar fora
+document.getElementById('modal-confirmacao')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('modal-confirmacao')) fecharModalConfirmacao();
 });
 
 // ============================================================
-// TROCA DE PLACA NA TELA DE CONFIRMAÇÃO
+// TROCA DE PLACA DENTRO DO MODAL
 // ============================================================
 document.getElementById('btn-alterar-placa')?.addEventListener('click', () => {
-  document.getElementById('confirm-veiculo-display')?.classList.add('hidden');
   const editEl = document.getElementById('confirm-veiculo-edit');
   editEl?.classList.remove('hidden');
-  // Pré-preenche com a placa atual para facilitar edição
   const inp = document.getElementById('confirm-input-placa');
   if (inp) { inp.value = placaAtual; inp.focus(); inp.select(); }
 });
 
 document.getElementById('btn-cancelar-troca-placa')?.addEventListener('click', () => {
   document.getElementById('confirm-veiculo-edit')?.classList.add('hidden');
-  document.getElementById('confirm-veiculo-display')?.classList.remove('hidden');
-  const erroEl = document.getElementById('confirm-erro-placa');
-  if (erroEl) erroEl.style.display = 'none';
+  const err = document.getElementById('confirm-erro-placa');
+  if (err) err.style.display = 'none';
   document.getElementById('confirm-input-placa')?.classList.remove('error');
 });
 
 document.getElementById('btn-confirmar-troca-placa')?.addEventListener('click', () => {
-  const inp     = document.getElementById('confirm-input-placa');
-  const erroEl  = document.getElementById('confirm-erro-placa');
+  const inp      = document.getElementById('confirm-input-placa');
+  const erroEl   = document.getElementById('confirm-erro-placa');
   const novaPlaca = normalizarPlaca(inp?.value || '');
 
   inp?.classList.remove('error');
@@ -366,20 +349,17 @@ document.getElementById('btn-confirmar-troca-placa')?.addEventListener('click', 
     return;
   }
 
-  // Atualiza estado (MANTÉM respostas e observações)
+  // Atualiza estado — respostas e observações ficam intactas
   placaAtual  = novaPlaca;
   modeloAtual = placasMap[novaPlaca]?.modelo || '';
 
-  // Atualiza badge no form também
+  // Atualiza badge no form
   atualizarPlacaBadge();
-
-  // Atualiza o campo de placa inicial (para consistência ao voltar)
+  // Atualiza campo inicial
   if (inputPlaca) inputPlaca.value = placaAtual;
-
-  // Fecha edição e atualiza display + resumo
+  // Fecha edição e atualiza display
   document.getElementById('confirm-veiculo-edit')?.classList.add('hidden');
-  document.getElementById('confirm-veiculo-display')?.classList.remove('hidden');
-  preencherTelaConfirmacao();
+  preencherModalConfirmacao();
   toast(`Placa alterada para ${placaAtual}`, 'success');
 });
 
@@ -387,18 +367,12 @@ document.getElementById('btn-confirmar-troca-placa')?.addEventListener('click', 
 // ENVIAR CHECKLIST
 // ============================================================
 document.getElementById('btn-confirmar-envio')?.addEventListener('click', async () => {
-  const naoResp = itens.filter(i => !respostas[i.id]);
-  if (naoResp.length) {
-    toast(`Ainda há ${naoResp.length} item(s) não respondido(s). Volte e complete o checklist.`, 'error');
-    return;
-  }
-
   const motorista = inputMot.value.trim();
   const { aprovado, percentual, conformes, totalItens } = calcularResultado(respostas, itens);
   const resultado = aprovado ? 'aprovado' : 'reprovado';
 
   const btn = document.getElementById('btn-confirmar-envio');
-  btn.disabled = true;
+  btn.disabled    = true;
   btn.textContent = 'Salvando...';
 
   try {
@@ -427,24 +401,25 @@ document.getElementById('btn-confirmar-envio')?.addEventListener('click', async 
       criadoEm: new Date()
     };
 
+    fecharModalConfirmacao();
     exibirResultado(checklistSubmetido);
     mostrarSecao('secao-resultado');
 
   } catch (e) {
     console.error(e);
     toast('Erro ao salvar. Tente novamente.', 'error');
-    btn.disabled = false;
+    btn.disabled    = false;
     btn.textContent = '🚀 Confirmar e Enviar';
   }
 });
 
 function exibirResultado(data) {
-  document.getElementById('resultado-banner').className    = `resultado-banner ${data.resultado}`;
-  document.getElementById('resultado-icone').textContent   = data.resultado === 'aprovado' ? '✅' : '❌';
-  document.getElementById('resultado-titulo').textContent  = data.resultado === 'aprovado' ? 'APROVADO' : 'REPROVADO';
-  document.getElementById('resultado-placa').textContent   = data.placa;
-  const modeloWrap = document.getElementById('resultado-modelo-wrap');
-  if (modeloWrap) modeloWrap.textContent = data.modelo || '';
+  document.getElementById('resultado-banner').className     = `resultado-banner ${data.resultado}`;
+  document.getElementById('resultado-icone').textContent    = data.resultado === 'aprovado' ? '✅' : '❌';
+  document.getElementById('resultado-titulo').textContent   = data.resultado === 'aprovado' ? 'APROVADO' : 'REPROVADO';
+  document.getElementById('resultado-placa').textContent    = data.placa;
+  const mw = document.getElementById('resultado-modelo-wrap');
+  if (mw) mw.textContent = data.modelo || '';
   document.getElementById('resultado-motorista').textContent  = data.motorista;
   document.getElementById('resultado-datahora').textContent   = formatarDataHora(data.criadoEm);
   document.getElementById('resultado-percentual').textContent = `${data.percentual}% de conformidade`;
@@ -453,8 +428,10 @@ function exibirResultado(data) {
 // ---------- Novo checklist ----------
 document.getElementById('btn-novo')?.addEventListener('click', () => {
   checklistSubmetido = null;
-  respostas = {}; observacoes = {};
-  placaAtual = ''; modeloAtual = '';
+  respostas   = {};
+  observacoes = {};
+  placaAtual  = '';
+  modeloAtual = '';
   if (inputPlaca) inputPlaca.value = '';
   if (inputMot)   inputMot.value   = '';
   mostrarSecao('secao-info');
