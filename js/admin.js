@@ -174,7 +174,7 @@ function renderizarHistorico(lista) {
   el.innerHTML = lista.map(c => `
     <div class="historico-item" onclick="verDetalhe('${c.id}')">
       <div class="historico-info">
-        <div class="historico-placa">${c.placa}</div>
+        <div class="historico-placa">${c.placa}${c.modelo ? ` <span style="font-size:13px;font-weight:500;color:var(--cor-texto-2);font-family:inherit">· ${c.modelo}</span>` : ''}</div>
         <div class="historico-meta">👤 ${c.motorista} &nbsp;•&nbsp; 📅 ${formatarDataHora(c.criadoEm)}</div>
       </div>
       <div class="historico-right">
@@ -189,7 +189,7 @@ window.verDetalhe = async (id) => {
   if (!c) return;
   checklistDetalhe = c;
 
-  document.getElementById('det-placa').textContent      = c.placa;
+  document.getElementById('det-placa').textContent      = c.modelo ? `${c.placa} · ${c.modelo}` : c.placa;
   document.getElementById('det-motorista').textContent  = c.motorista;
   document.getElementById('det-datahora').textContent   = formatarDataHora(c.criadoEm);
   document.getElementById('det-resultado').innerHTML    =
@@ -260,6 +260,7 @@ function renderizarDashboard() {
   renderizarGraficoDonut(lista);
   renderizarGraficoLinha(tipo);
   renderizarNaoConformes(lista);
+  renderizarRankingPlacas(lista);
 }
 
 function toDate(ts) {
@@ -424,6 +425,71 @@ function renderizarNaoConformes(lista) {
   }).join('');
 }
 
+function renderizarRankingPlacas(lista) {
+  const el = document.getElementById('dash-ranking-placas');
+  if (!el) return;
+
+  if (lista.length === 0) {
+    el.innerHTML = `<div class="dash-empty">📭 Nenhuma inspeção no período selecionado.</div>`;
+    return;
+  }
+
+  // Agrupa por placa
+  const porPlaca = {};
+  for (const c of lista) {
+    const key = c.placa;
+    if (!porPlaca[key]) {
+      porPlaca[key] = { placa: c.placa, modelo: c.modelo || '', total: 0, reprovados: 0, aprovados: 0 };
+    }
+    porPlaca[key].total++;
+    if (c.resultado === 'reprovado') porPlaca[key].reprovados++;
+    else porPlaca[key].aprovados++;
+  }
+
+  const ranking = Object.values(porPlaca)
+    .sort((a, b) => b.reprovados - a.reprovados || b.total - a.total)
+    .slice(0, 10);
+
+  if (!ranking.length || ranking[0].reprovados === 0) {
+    el.innerHTML = `<div class="dash-empty">✅ Nenhuma reprovação no período!</div>`;
+    return;
+  }
+
+  const maxRepr = ranking[0].reprovados;
+
+  el.innerHTML = ranking.map((r, idx) => {
+    const taxaRepr = r.total > 0 ? Math.round((r.reprovados / r.total) * 100) : 0;
+    const rankClass = idx === 0 ? 'top-1' : idx === 1 ? 'top-2' : idx === 2 ? 'top-3' : '';
+    const barWidth  = Math.round((r.reprovados / maxRepr) * 100);
+
+    // Cor da barra de aprovação (mini)
+    const taxaAprov = r.total > 0 ? Math.round((r.aprovados / r.total) * 100) : 0;
+
+    return `
+    <div class="dash-nc-item" style="align-items:center">
+      <div class="dash-nc-rank ${rankClass}">${idx + 1}</div>
+      <div style="min-width:0;flex:1">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:800;
+                       letter-spacing:.06em;color:var(--cor-texto)">${r.placa}</span>
+          ${r.modelo ? `<span style="font-size:12px;color:var(--cor-texto-2)">${r.modelo}</span>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <span class="badge badge-reprovado">${r.reprovados} reprov.</span>
+          <span class="badge badge-aprovado">${r.aprovados} aprov.</span>
+          <span style="font-size:11px;color:var(--cor-texto-3)">${r.total} inspeções • ${taxaRepr}% reprovação</span>
+        </div>
+      </div>
+      <div class="dash-nc-bar-wrap" style="min-width:100px;max-width:140px">
+        <div class="dash-nc-bar-bg">
+          <div class="dash-nc-bar" style="width:${barWidth}%"></div>
+        </div>
+        <div class="dash-nc-count">${r.reprovados}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // Eventos filtros dashboard
 document.getElementById('dash-filtro-tipo')?.addEventListener('change', function() {
   const tipo = this.value;
@@ -455,7 +521,10 @@ function renderizarPlacas() {
   el.innerHTML = placas.map(p => `
     <div class="item-lista ${p.ativo ? '' : 'inativo'}">
       <div class="item-lista-info">
-        <div class="placa-chip ${p.ativo ? '' : 'inativa'}">🚗 ${p.placa}</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <div class="placa-chip ${p.ativo ? '' : 'inativa'}">🚗 ${p.placa}</div>
+          ${p.modelo ? `<div style="font-size:14px;font-weight:500;color:var(--cor-texto-2)">${p.modelo}</div>` : ''}
+        </div>
         <div class="item-lista-meta" style="margin-top:6px">
           ${p.ativo ? '<span class="badge badge-aprovado">Ativa</span>' : '<span class="badge badge-reprovado">Inativa</span>'}
           <span style="font-size:12px;color:var(--cor-texto-3)">Cadastrada em ${formatarDataHora(p.criadoEm)}</span>
@@ -472,8 +541,9 @@ function renderizarPlacas() {
 
 document.getElementById('btn-add-placa')?.addEventListener('click', () => {
   document.getElementById('modal-placa-titulo').textContent = 'Nova Placa';
-  document.getElementById('placa-id').value    = '';
-  document.getElementById('placa-input').value = '';
+  document.getElementById('placa-id').value     = '';
+  document.getElementById('placa-input').value  = '';
+  document.getElementById('placa-modelo').value = '';
   abrirModal('modal-placa');
 });
 
@@ -481,19 +551,21 @@ window.editarPlaca = (id) => {
   const p = placas.find(x => x.id === id);
   if (!p) return;
   document.getElementById('modal-placa-titulo').textContent = 'Editar Placa';
-  document.getElementById('placa-id').value    = p.id;
-  document.getElementById('placa-input').value = p.placa;
+  document.getElementById('placa-id').value     = p.id;
+  document.getElementById('placa-input').value  = p.placa;
+  document.getElementById('placa-modelo').value = p.modelo || '';
   abrirModal('modal-placa');
 };
 
 document.getElementById('btn-salvar-placa')?.addEventListener('click', async () => {
-  const id    = document.getElementById('placa-id').value;
-  const placa = normalizarPlaca(document.getElementById('placa-input').value);
+  const id     = document.getElementById('placa-id').value;
+  const placa  = normalizarPlaca(document.getElementById('placa-input').value);
+  const modelo = (document.getElementById('placa-modelo').value || '').trim();
   if (!validarPlaca(placa)) { toast('Formato inválido. Use ABC1234 ou ABC1D23.', 'error'); return; }
   if (placas.find(p => p.placa === placa && p.id !== id)) { toast('Placa já cadastrada.', 'error'); return; }
   try {
-    if (id) { await updateDoc(doc(db, 'placas', id), { placa }); toast('Placa atualizada!', 'success'); }
-    else    { await addDoc(collection(db, 'placas'), { placa, ativo: true, criadoEm: serverTimestamp() }); toast('Placa cadastrada!', 'success'); }
+    if (id) { await updateDoc(doc(db, 'placas', id), { placa, modelo }); toast('Placa atualizada!', 'success'); }
+    else    { await addDoc(collection(db, 'placas'), { placa, modelo, ativo: true, criadoEm: serverTimestamp() }); toast('Placa cadastrada!', 'success'); }
     fecharModal('modal-placa');
     await carregarPlacas();
   } catch (e) { toast('Erro ao salvar placa.', 'error'); }
