@@ -2,6 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMzRDZGRkYiLz4KICA8IS0tIENvcnBvIGRvIGNhcnJvIC0tPgogIDxyZWN0IHg9IjgiIHk9IjI4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTYiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPgogIDwhLS0gVGV0byBkbyBjYXJybyAtLT4KICA8cGF0aCBkPSJNMTggMjggTDIyIDE4IEw0MiAxOCBMNDYgMjhaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDwhLS0gSmFuZWxhcyAtLT4KICA8cGF0aCBkPSJNMjMgMjcgTDI2IDIwIEwzOCAyMCBMNDEgMjdaIiBmaWxsPSIjM0Q2RkZGIi8+CiAgPCEtLSBSb2RhcyAtLT4KICA8Y2lyY2xlIGN4PSIxOSIgY3k9IjQ0IiByPSI2IiBmaWxsPSIjMUExRDJFIi8+CiAgPGNpcmNsZSBjeD0iMTkiIGN5PSI0NCIgcj0iMyIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNCIvPgogIDxjaXJjbGUgY3g9IjQ1IiBjeT0iNDQiIHI9IjYiIGZpbGw9IiMxQTFEMkUiLz4KICA8Y2lyY2xlIGN4PSI0NSIgY3k9IjQ0IiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC40Ii8+CiAgPCEtLSBGYXJvbCAtLT4KICA8cmVjdCB4PSI4IiB5PSIzMCIgd2lkdGg9IjYiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNGRkQ3MDAiIG9wYWNpdHk9IjAuOSIvPgogIDwhLS0gTGFudGVybmEgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjMwIiB3aWR0aD0iNiIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iI0ZGNkI2QiIgb3BhY2l0eT0iMC45Ii8+CiAgPCEtLSBDaGVja21hcmsgLS0+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSIxNiIgcj0iOSIgZmlsbD0iIzAwQzg5NiIvPgogIDxwYXRoIGQ9Ik00NC41IDE2IEw0OC41IDIwIEw1NS41IDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+Cjwvc3ZnPgo=">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Checklist de Veículos</title>
   <link rel="stylesheet" href="css/style.css">
@@ -11,12 +12,14 @@
 <body>
 
 <nav class="navbar">
-  <div class="navbar-brand">
-    <div class="brand-icon">🚗</div>
-    Checklist de Veículos
+  <div class="navbar-left">
+    <a id="acesso-admin" href="pages/admin.html" class="btn btn-ghost btn-sm hidden">⚙️ Admin</a>
   </div>
+  <a href="index.html" class="navbar-brand">
+    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMzRDZGRkYiLz4KICA8IS0tIENvcnBvIGRvIGNhcnJvIC0tPgogIDxyZWN0IHg9IjgiIHk9IjI4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTYiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPgogIDwhLS0gVGV0byBkbyBjYXJybyAtLT4KICA8cGF0aCBkPSJNMTggMjggTDIyIDE4IEw0MiAxOCBMNDYgMjhaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDwhLS0gSmFuZWxhcyAtLT4KICA8cGF0aCBkPSJNMjMgMjcgTDI2IDIwIEwzOCAyMCBMNDEgMjdaIiBmaWxsPSIjM0Q2RkZGIi8+CiAgPCEtLSBSb2RhcyAtLT4KICA8Y2lyY2xlIGN4PSIxOSIgY3k9IjQ0IiByPSI2IiBmaWxsPSIjMUExRDJFIi8+CiAgPGNpcmNsZSBjeD0iMTkiIGN5PSI0NCIgcj0iMyIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNCIvPgogIDxjaXJjbGUgY3g9IjQ1IiBjeT0iNDQiIHI9IjYiIGZpbGw9IiMxQTFEMkUiLz4KICA8Y2lyY2xlIGN4PSI0NSIgY3k9IjQ0IiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC40Ii8+CiAgPCEtLSBGYXJvbCAtLT4KICA8cmVjdCB4PSI4IiB5PSIzMCIgd2lkdGg9IjYiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNGRkQ3MDAiIG9wYWNpdHk9IjAuOSIvPgogIDwhLS0gTGFudGVybmEgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjMwIiB3aWR0aD0iNiIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iI0ZGNkI2QiIgb3BhY2l0eT0iMC45Ii8+CiAgPCEtLSBDaGVja21hcmsgLS0+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSIxNiIgcj0iOSIgZmlsbD0iIzAwQzg5NiIvPgogIDxwYXRoIGQ9Ik00NC41IDE2IEw0OC41IDIwIEw1NS41IDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+Cjwvc3ZnPgo=" class="brand-logo" alt="Logo">
+    Checklist de Veículos
+  </a>
   <div class="navbar-actions">
-    <a id="acesso-admin" href="pages/admin.html" class="btn btn-ghost btn-sm hidden">⚙️ Painel Admin</a>
     <a href="pages/login.html" class="btn btn-ghost btn-sm">🔐 Login</a>
   </div>
 </nav>
