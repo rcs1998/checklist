@@ -137,7 +137,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     const tabId = btn.dataset.tab;
     document.getElementById(tabId)?.classList.add('active');
-    if (tabId === 'tab-dashboard') renderizarDashboard();
+    if (tabId === 'tab-dashboard')  renderizarDashboard();
+    if (tabId === 'tab-auditoria')  carregarAuditoria();
   });
 });
 
@@ -248,19 +249,14 @@ window.excluirChecklist = async (id) => {
   if (!isSuperAdmin) { toast('Sem permissão para excluir.', 'error'); return; }
   if (!confirmar('⚠️ Deseja excluir permanentemente este checklist? Esta ação não pode ser desfeita.')) return;
   try {
+    const c = checklists.find(x => x.id === id);
     await deleteDoc(doc(db, 'checklists', id));
-    // Fecha modal se estiver aberto para este item
-    if (checklistDetalhe?.id === id) {
-      fecharModal('modal-detalhe');
-      checklistDetalhe = null;
-    }
+    await registrarAuditoria('checklist_excluido', { placa: c?.placa, checklistId: id });
+    if (checklistDetalhe?.id === id) { fecharModal('modal-detalhe'); checklistDetalhe = null; }
     toast('Checklist excluído.', 'success');
     await carregarChecklists();
     renderizarEstatisticas();
-  } catch (e) {
-    console.error(e);
-    toast('Erro ao excluir checklist.', 'error');
-  }
+  } catch (e) { console.error(e); toast('Erro ao excluir checklist.', 'error'); }
 };
 
 // Filtros histórico
@@ -606,17 +602,26 @@ document.getElementById('btn-salvar-placa')?.addEventListener('click', async () 
   if (!validarPlaca(placa)) { toast('Formato inválido. Use ABC1234 ou ABC1D23.', 'error'); return; }
   if (placas.find(p => p.placa === placa && p.id !== id)) { toast('Placa já cadastrada.', 'error'); return; }
   try {
-    if (id) { await updateDoc(doc(db, 'placas', id), { placa, modelo }); toast('Placa atualizada!', 'success'); }
-    else    { await addDoc(collection(db, 'placas'), { placa, modelo, ativo: true, criadoEm: serverTimestamp() }); toast('Placa cadastrada!', 'success'); }
+    if (id) {
+      await updateDoc(doc(db, 'placas', id), { placa, modelo });
+      await registrarAuditoria('placa_editada', { placa, modelo, placaId: id });
+      toast('Placa atualizada!', 'success');
+    } else {
+      const ref = await addDoc(collection(db, 'placas'), { placa, modelo, ativo: true, criadoEm: serverTimestamp() });
+      await registrarAuditoria('placa_cadastrada', { placa, modelo, placaId: ref.id });
+      toast('Placa cadastrada!', 'success');
+    }
     fecharModal('modal-placa');
     await carregarPlacas();
   } catch (e) { toast('Erro ao salvar placa.', 'error'); }
 });
 
 window.togglePlaca = async (id, ativo) => {
+  const p = placas.find(x => x.id === id);
   if (!confirmar(`Deseja ${ativo ? 'inativar' : 'ativar'} esta placa?`)) return;
   try {
     await updateDoc(doc(db, 'placas', id), { ativo: !ativo });
+    await registrarAuditoria(ativo ? 'placa_inativada' : 'placa_ativada', { placa: p?.placa, placaId: id });
     toast(`Placa ${ativo ? 'inativada' : 'ativada'}!`, 'success');
     await carregarPlacas();
   } catch (e) { toast('Erro ao alterar status.', 'error'); }
@@ -709,17 +714,26 @@ document.getElementById('btn-salvar-item')?.addEventListener('click', async () =
   const ordem = itens.filter(i => i.secaoId === secaoId && i.id !== id).length + 1;
   const dados = { nome, parametro, numero, secaoId, impeditivo, permiteNaoAplica, ordem, ativo: true };
   try {
-    if (id) { await updateDoc(doc(db, 'itens', id), dados); toast('Item atualizado!', 'success'); }
-    else    { await addDoc(collection(db, 'itens'), { ...dados, criadoEm: serverTimestamp() }); toast('Item adicionado!', 'success'); }
+    if (id) {
+      await updateDoc(doc(db, 'itens', id), dados);
+      await registrarAuditoria('item_editado', { itemNome: nome, itemId: id, secaoId });
+      toast('Item atualizado!', 'success');
+    } else {
+      const ref = await addDoc(collection(db, 'itens'), { ...dados, criadoEm: serverTimestamp() });
+      await registrarAuditoria('item_cadastrado', { itemNome: nome, itemId: ref.id, secaoId });
+      toast('Item adicionado!', 'success');
+    }
     fecharModal('modal-item');
     await carregarItens();
   } catch (e) { toast('Erro ao salvar item.', 'error'); }
 });
 
 window.toggleItem = async (id, ativo) => {
+  const item = itens.find(x => x.id === id);
   if (!confirmar(`Deseja ${ativo ? 'remover' : 'reativar'} este item?`)) return;
   try {
     await updateDoc(doc(db, 'itens', id), { ativo: !ativo });
+    await registrarAuditoria(ativo ? 'item_inativado' : 'item_reativado', { itemNome: item?.nome, itemId: id });
     toast(`Item ${ativo ? 'removido' : 'reativado'}!`, 'success');
     await carregarItens();
   } catch (e) { toast('Erro ao alterar item.', 'error'); }
@@ -796,6 +810,7 @@ document.getElementById('btn-salvar-usuario')?.addEventListener('click', async (
       uid: cred.user.uid, nome, email, ativo: true,
       trocarSenha: true, criadoEm: serverTimestamp(), criadoPor: adminUid
     });
+    await registrarAuditoria('usuario_cadastrado', { usuarioNome: nome, usuarioEmail: email, usuarioUid: cred.user.uid });
     toast(`Usuário ${nome} criado! Redirecionando para reautenticar...`, 'success');
     fecharModal('modal-usuario');
     await carregarUsuarios();
@@ -814,6 +829,7 @@ window.toggleUsuario = async (id, ativo, email) => {
   if (!confirmar(`Deseja ${ativo ? 'inativar' : 'ativar'} o usuário ${email}?`)) return;
   try {
     await updateDoc(doc(db, 'usuarios', id), { ativo: !ativo });
+    await registrarAuditoria(ativo ? 'usuario_inativado' : 'usuario_ativado', { usuarioEmail: email, usuarioId: id });
     toast(`Usuário ${ativo ? 'inativado' : 'ativado'}!`, 'success');
     await carregarUsuarios();
   } catch (e) { toast('Erro ao alterar status.', 'error'); }
@@ -821,8 +837,11 @@ window.toggleUsuario = async (id, ativo, email) => {
 
 window.enviarResetSenha = async (email) => {
   if (!confirmar(`Enviar link de redefinição para ${email}?`)) return;
-  try { await sendPasswordResetEmail(auth, email); toast(`Link enviado para ${email}`, 'success'); }
-  catch (e) { toast('Erro ao enviar e-mail.', 'error'); }
+  try {
+    await sendPasswordResetEmail(auth, email);
+    await registrarAuditoria('senha_reset_enviada', { usuarioEmail: email });
+    toast(`Link enviado para ${email}`, 'success');
+  } catch (e) { toast('Erro ao enviar e-mail.', 'error'); }
 };
 
 document.getElementById('toggle-usuario-senha')?.addEventListener('click', () => {
@@ -846,3 +865,124 @@ if (new URLSearchParams(window.location.search).get('msg') === 'usuario-criado')
   history.replaceState({}, '', window.location.pathname);
   setTimeout(() => toast('Usuário criado! Bem-vindo de volta.', 'success'), 800);
 }
+
+// ============================================================
+// AUDITORIA — helper para registrar ação no Firestore
+// ============================================================
+async function registrarAuditoria(acao, detalhes = {}) {
+  try {
+    await addDoc(collection(db, 'auditoria'), {
+      acao,
+      ...detalhes,
+      feitorPor:  usuarioAtual?.email || 'desconhecido',
+      feitorUid:  usuarioAtual?.uid   || '',
+      criadoEm:   serverTimestamp()
+    });
+  } catch (e) {
+    console.warn('Auditoria não registrada:', e);
+  }
+}
+
+// ============================================================
+// AUDITORIA — Carregar e renderizar log de ações
+// ============================================================
+let auditoriaLogs = [];
+
+async function carregarAuditoria() {
+  const loading = document.getElementById('audit-loading');
+  const lista   = document.getElementById('audit-lista');
+  loading?.classList.remove('hidden');
+  lista && (lista.innerHTML = '');
+  document.getElementById('audit-empty')?.classList.add('hidden');
+
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'auditoria'), orderBy('criadoEm', 'desc'))
+    );
+    auditoriaLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderizarAuditoria(auditoriaLogs);
+  } catch (e) {
+    console.error('Erro auditoria:', e);
+    toast('Erro ao carregar auditoria.', 'error');
+  } finally {
+    loading?.classList.add('hidden');
+  }
+}
+
+const ACOES_LABEL = {
+  placa_cadastrada:    { icon: '🚗', label: 'Placa cadastrada',       cor: 'var(--cor-aprovado)' },
+  placa_editada:       { icon: '✏️', label: 'Placa editada',           cor: 'var(--cor-primaria)' },
+  placa_inativada:     { icon: '🔒', label: 'Placa inativada',         cor: 'var(--cor-reprovado)' },
+  placa_ativada:       { icon: '🔓', label: 'Placa ativada',           cor: 'var(--cor-aprovado)' },
+  item_cadastrado:     { icon: '📋', label: 'Item cadastrado',          cor: 'var(--cor-aprovado)' },
+  item_editado:        { icon: '✏️', label: 'Item editado',             cor: 'var(--cor-primaria)' },
+  item_inativado:      { icon: '🔒', label: 'Item inativado',           cor: 'var(--cor-reprovado)' },
+  item_reativado:      { icon: '🔓', label: 'Item reativado',           cor: 'var(--cor-aprovado)' },
+  usuario_cadastrado:  { icon: '👤', label: 'Usuário cadastrado',       cor: 'var(--cor-aprovado)' },
+  usuario_inativado:   { icon: '🔒', label: 'Usuário inativado',        cor: 'var(--cor-reprovado)' },
+  usuario_ativado:     { icon: '🔓', label: 'Usuário ativado',          cor: 'var(--cor-aprovado)' },
+  checklist_excluido:  { icon: '🗑️', label: 'Checklist excluído',       cor: 'var(--cor-reprovado)' },
+  senha_reset_enviada: { icon: '🔑', label: 'Reset de senha enviado',   cor: 'var(--cor-alerta)' },
+};
+
+function detalhesDaAcao(log) {
+  const parts = [];
+  if (log.placa)         parts.push(`Placa: <strong>${log.placa}</strong>`);
+  if (log.modelo)        parts.push(`Modelo: <strong>${log.modelo}</strong>`);
+  if (log.itemNome)      parts.push(`Item: <strong>${log.itemNome}</strong>`);
+  if (log.usuarioNome)   parts.push(`Usuário: <strong>${log.usuarioNome}</strong>`);
+  if (log.usuarioEmail)  parts.push(`E-mail: <strong>${log.usuarioEmail}</strong>`);
+  if (log.checklistId)   parts.push(`ID: <code style="font-size:11px">${log.checklistId.slice(0,8)}…</code>`);
+  return parts.join(' &nbsp;·&nbsp; ');
+}
+
+function renderizarAuditoria(lista) {
+  const el    = document.getElementById('audit-lista');
+  const empty = document.getElementById('audit-empty');
+  if (!el) return;
+
+  if (!lista.length) {
+    el.innerHTML = '';
+    empty?.classList.remove('hidden');
+    return;
+  }
+  empty?.classList.add('hidden');
+
+  el.innerHTML = lista.map(log => {
+    const meta = ACOES_LABEL[log.acao] || { icon: '📝', label: log.acao, cor: 'var(--cor-texto-3)' };
+    const det  = detalhesDaAcao(log);
+    return `
+    <div class="audit-item">
+      <div class="audit-icon" style="color:${meta.cor}">${meta.icon}</div>
+      <div class="audit-body">
+        <div class="audit-acao" style="color:${meta.cor}">${meta.label}</div>
+        ${det ? `<div class="audit-det">${det}</div>` : ''}
+        <div class="audit-meta">
+          👤 <strong>${log.feitorPor}</strong>
+          &nbsp;·&nbsp;
+          📅 ${formatarDataHora(log.criadoEm)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// Filtros auditoria
+function aplicarFiltrosAuditoria() {
+  const busca = (document.getElementById('audit-busca')?.value || '').toLowerCase();
+  const tipo  = document.getElementById('audit-filtro-acao')?.value || '';
+  renderizarAuditoria(auditoriaLogs.filter(log => {
+    const matchTipo  = !tipo || log.acao?.includes(tipo.replace('placa','placa').replace('item','item').replace('usuario','usuario').replace('checklist','checklist').replace('senha','senha'));
+    const matchBusca = !busca ||
+      log.feitorPor?.toLowerCase().includes(busca) ||
+      log.acao?.toLowerCase().includes(busca) ||
+      log.placa?.toLowerCase().includes(busca) ||
+      log.itemNome?.toLowerCase().includes(busca) ||
+      log.usuarioEmail?.toLowerCase().includes(busca) ||
+      log.usuarioNome?.toLowerCase().includes(busca);
+    return matchTipo && matchBusca;
+  }));
+}
+
+document.getElementById('audit-busca')?.addEventListener('input', aplicarFiltrosAuditoria);
+document.getElementById('audit-filtro-acao')?.addEventListener('change', aplicarFiltrosAuditoria);
