@@ -95,33 +95,56 @@ img { max-width: 100%; }
   position: sticky;
   top: 0;
   z-index: 100;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  height: 60px;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(12px);
+  padding: 0 28px;
+  height: 64px;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid var(--cor-borda);
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  box-shadow: 0 1px 8px rgba(0,0,0,0.06);
 }
 .navbar-brand {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   font-weight: 700;
   font-size: 15px;
   letter-spacing: -0.02em;
   color: var(--cor-texto);
+  grid-column: 2;
+  text-decoration: none;
+  white-space: nowrap;
 }
+.navbar-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  grid-column: 1;
+}
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  grid-column: 3;
+}
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+}
+/* Fallback para páginas que ainda usam brand-icon */
 .navbar-brand .brand-icon {
-  width: 32px; height: 32px;
+  width: 34px; height: 34px;
   background: var(--cor-primaria);
   border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  font-size: 16px;
+  font-size: 17px;
+  flex-shrink: 0;
 }
-.navbar-actions { display: flex; align-items: center; gap: 10px; }
 
 /* ---------- BOTÕES ---------- */
 .btn {
@@ -674,7 +697,7 @@ tbody tr { cursor: default; transition: background var(--trans); }
 
 /* ---------- LOGIN PAGE ---------- */
 .page-login {
-  min-height: 100vh;
+  min-height: calc(100vh - 64px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -898,6 +921,41 @@ tbody tr { cursor: default; transition: background var(--trans); }
 }
 @media (max-width: 400px) {
   .dash-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* ---------- AUDITORIA ---------- */
+.audit-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--cor-borda);
+}
+.audit-item:last-child { border-bottom: none; }
+.audit-icon {
+  font-size: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  width: 28px;
+  text-align: center;
+}
+.audit-body { flex: 1; min-width: 0; }
+.audit-acao {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 3px;
+}
+.audit-det {
+  font-size: 13px;
+  color: var(--cor-texto);
+  margin-bottom: 4px;
+  line-height: 1.5;
+}
+.audit-meta {
+  font-size: 12px;
+  color: var(--cor-texto-3);
 }
 
 /* ---------- PRINT / PDF ---------- */
