@@ -287,8 +287,14 @@ tbody tr { cursor: default; transition: background var(--trans); }
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
   animation: modalIn .2s ease;
+}
+.modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
 }
 @keyframes modalIn {
   from { opacity: 0; transform: scale(.96) translateY(8px); }
@@ -311,17 +317,20 @@ tbody tr { cursor: default; transition: background var(--trans); }
   flex-shrink: 0;
 }
 .modal-close:hover { background: var(--cor-surface-2); color: var(--cor-texto); }
-.modal-body { padding: 24px; }
 .modal-footer {
-  display: flex; gap: 10px; justify-content: flex-end;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  align-items: center;
   padding: 16px 24px;
   border-top: 1px solid var(--cor-borda);
   flex-wrap: wrap;
+  flex-shrink: 0;   /* nunca comprime o footer */
 }
-/* Fix: botão cancelar não pode vazar para fora do modal footer */
 .modal-footer .btn {
-  max-width: 100%;
   white-space: nowrap;
+  min-width: 0;
+  flex-shrink: 1;
 }
 
 /* ---------- TOAST ---------- */
