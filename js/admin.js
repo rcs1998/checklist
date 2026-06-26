@@ -335,13 +335,40 @@ function renderizarKPIs(lista) {
   for (const c of lista) {
     if (c.resultado === 'reprovado' && itens.some(i => i.impeditivo && c.respostas?.[i.id] === 'nc')) imp++;
   }
+
+  // Veículos distintos
+  const placasDistintas = new Set(lista.map(c => c.placa)).size;
+
+  // Pior placa (maior taxa de reprovação com mínimo 2 inspeções)
+  const porPlaca = {};
+  for (const c of lista) {
+    if (!porPlaca[c.placa]) porPlaca[c.placa] = { total: 0, repr: 0 };
+    porPlaca[c.placa].total++;
+    if (c.resultado === 'reprovado') porPlaca[c.placa].repr++;
+  }
+  const piorPlaca = Object.entries(porPlaca)
+    .filter(([, v]) => v.total >= 1)
+    .sort(([, a], [, b]) => (b.repr / b.total) - (a.repr / a.total))[0];
+
   document.getElementById('dash-kpi-total').textContent = total;
   document.getElementById('dash-kpi-aprov').textContent = taxa + '%';
   document.getElementById('dash-kpi-repr').textContent  = repr;
   document.getElementById('dash-kpi-media').textContent = media + '%';
   document.getElementById('dash-kpi-imp').textContent   = imp;
+  document.getElementById('dash-kpi-veiculos').textContent = placasDistintas;
   document.getElementById('dash-kpi-sub-aprov').textContent = `${aprov} de ${total} inspeções`;
   document.getElementById('dash-kpi-sub-repr').textContent  = `${repr} reprovações no período`;
+
+  const piorEl    = document.getElementById('dash-kpi-pior-placa');
+  const piorSubEl = document.getElementById('dash-kpi-pior-placa-sub');
+  if (piorPlaca && piorEl) {
+    const [placa, v] = piorPlaca;
+    piorEl.textContent    = placa;
+    piorSubEl.textContent = `${v.repr}/${v.total} inspeções reprovadas`;
+  } else if (piorEl) {
+    piorEl.textContent    = '—';
+    piorSubEl.textContent = 'Nenhuma reprovação';
+  }
 }
 
 function renderizarGraficoDonut(lista) {
