@@ -907,25 +907,47 @@ async function carregarAuditoria() {
   try {
     // Sem orderBy para evitar exigir índice composto no Firestore
     const snap = await getDocs(collection(db, 'auditoria'));
+
+    if (snap.empty) {
+      // Coleção existe mas está vazia (ou não existe ainda — Firestore retorna empty para ambos)
+      if (lista) lista.innerHTML = '';
+      document.getElementById('audit-empty')?.classList.remove('hidden');
+      const emptyEl = document.getElementById('audit-empty');
+      if (emptyEl) emptyEl.innerHTML = `
+        <div class="empty-icon">📋</div>
+        <p>Nenhum registro de auditoria ainda.</p>
+        <p style="font-size:12px;color:var(--cor-texto-3);margin-top:8px;line-height:1.6">
+          Os registros aparecem aqui automaticamente após<br>
+          as primeiras ações no sistema (cadastrar placa, editar item, etc).
+        </p>`;
+      return;
+    }
+
     auditoriaLogs = snap.docs
       .map(d => ({ id: d.id, ...d.data() }))
       .sort((a, b) => {
         const ta = a.criadoEm?.toDate?.() ?? new Date(a.criadoEm ?? 0);
         const tb = b.criadoEm?.toDate?.() ?? new Date(b.criadoEm ?? 0);
-        return tb - ta; // mais recente primeiro
+        return tb - ta;
       });
     renderizarAuditoria(auditoriaLogs);
   } catch (e) {
     console.error('Erro auditoria:', e);
+    const isPermission = e.code === 'permission-denied' || e.message?.includes('permission');
     if (lista) lista.innerHTML = `
       <div class="empty-state">
         <div class="empty-icon">⚠️</div>
-        <p>Erro ao carregar auditoria.</p>
-        <p style="font-size:12px;color:var(--cor-texto-3);margin-top:8px">
-          Verifique as regras do Firestore:<br>
-          <code style="background:var(--cor-surface-2);padding:2px 6px;border-radius:4px;font-size:11px">
-            match /auditoria/{doc} { allow read, write: if request.auth != null; }
-          </code>
+        <p>${isPermission ? 'Sem permissão para acessar a auditoria.' : 'Erro ao carregar auditoria.'}</p>
+        <p style="font-size:12px;color:var(--cor-texto-3);margin-top:10px;line-height:1.8;text-align:left;background:var(--cor-surface-2);padding:12px 14px;border-radius:var(--radius-sm)">
+          ${isPermission
+            ? '🔐 Adicione a regra abaixo no <strong>Firestore → Regras</strong> e publique:'
+            : '⚙️ Código do erro: <code>' + (e.code || e.message) + '</code>'}
+          ${isPermission ? `<br><br>
+          <code style="display:block;background:var(--cor-fundo);padding:8px 10px;border-radius:4px;font-size:11px;word-break:break-all">
+match /auditoria/{doc} {<br>
+&nbsp;&nbsp;allow read, write: if request.auth != null;<br>
+}
+          </code>` : ''}
         </p>
       </div>`;
   } finally {
