@@ -182,7 +182,22 @@ export function gerarHTMLPDF(checklist, itens, secoes) {
 <div class="pdf-page">
   <div class="pdf-header">
     <div class="pdf-logo-area">
-      <div class="pdf-logo-box">🚗</div>
+      <div class="pdf-logo-box">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="32" height="32" style="display:block">
+          <rect width="64" height="64" rx="10" fill="#3D6FFF"/>
+          <rect x="8" y="28" width="48" height="16" rx="4" fill="white"/>
+          <path d="M18 28 L22 18 L42 18 L46 28Z" fill="white" opacity="0.95"/>
+          <path d="M23 27 L26 20 L38 20 L41 27Z" fill="#3D6FFF"/>
+          <circle cx="19" cy="44" r="6" fill="#1A1D2E"/>
+          <circle cx="19" cy="44" r="3" fill="white" opacity="0.4"/>
+          <circle cx="45" cy="44" r="6" fill="#1A1D2E"/>
+          <circle cx="45" cy="44" r="3" fill="white" opacity="0.4"/>
+          <rect x="8" y="30" width="6" height="4" rx="1" fill="#FFD700" opacity="0.9"/>
+          <rect x="50" y="30" width="6" height="4" rx="1" fill="#FF6B6B" opacity="0.9"/>
+          <circle cx="50" cy="16" r="9" fill="#00C896"/>
+          <path d="M44.5 16 L48.5 20 L55.5 12" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
       <div>
         <div class="pdf-title">Checklist de Veículo</div>
         <div class="pdf-subtitle">Inspeção operacional</div>
