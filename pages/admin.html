@@ -84,6 +84,7 @@
   <!-- TAB: DASHBOARD -->
   <div id="tab-dashboard" class="tab-content">
 
+    <!-- Filtros -->
     <div class="dashboard-filtros">
       <div class="form-group" style="min-width:160px;margin-bottom:0">
         <label>Tipo de filtro</label>
@@ -92,23 +93,16 @@
           <option value="custom">Período personalizado</option>
         </select>
       </div>
-
       <div id="dash-filtros-mes" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div class="form-group" style="min-width:130px;margin-bottom:0">
           <label>Mês</label>
           <select id="dash-mes" class="form-control">
-            <option value="1">Janeiro</option>
-            <option value="2">Fevereiro</option>
-            <option value="3">Março</option>
-            <option value="4">Abril</option>
-            <option value="5">Maio</option>
-            <option value="6">Junho</option>
-            <option value="7">Julho</option>
-            <option value="8">Agosto</option>
-            <option value="9">Setembro</option>
-            <option value="10">Outubro</option>
-            <option value="11">Novembro</option>
-            <option value="12">Dezembro</option>
+            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
+            <option value="3">Março</option><option value="4">Abril</option>
+            <option value="5">Maio</option><option value="6">Junho</option>
+            <option value="7">Julho</option><option value="8">Agosto</option>
+            <option value="9">Setembro</option><option value="10">Outubro</option>
+            <option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
         </div>
         <div class="form-group" style="min-width:90px;margin-bottom:0">
@@ -116,7 +110,6 @@
           <select id="dash-ano" class="form-control"></select>
         </div>
       </div>
-
       <div id="dash-filtros-custom" class="hidden" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
         <div class="form-group" style="margin-bottom:0">
           <label>De</label>
@@ -129,61 +122,76 @@
       </div>
     </div>
 
-    <!-- KPIs -->
-    <div class="dash-grid">
-      <div class="dash-kpi">
-        <div class="dash-kpi-label">Total de Inspeções</div>
-        <div class="dash-kpi-valor" id="dash-kpi-total">—</div>
-        <div class="dash-kpi-sub">No período selecionado</div>
-      </div>
-      <div class="dash-kpi kpi-aprovado">
-        <div class="dash-kpi-label">Taxa de Aprovação</div>
-        <div class="dash-kpi-valor" id="dash-kpi-aprov">—</div>
-        <div class="dash-kpi-sub" id="dash-kpi-sub-aprov">—</div>
-      </div>
-      <div class="dash-kpi kpi-reprovado">
-        <div class="dash-kpi-label">Reprovações</div>
-        <div class="dash-kpi-valor" id="dash-kpi-repr">—</div>
-        <div class="dash-kpi-sub" id="dash-kpi-sub-repr">—</div>
-      </div>
-      <div class="dash-kpi">
-        <div class="dash-kpi-label">Média de Conformidade</div>
-        <div class="dash-kpi-valor" id="dash-kpi-media">—</div>
-        <div class="dash-kpi-sub" id="dash-kpi-sub-media">Média de itens conformes</div>
-      </div>
-      <div class="dash-kpi kpi-alerta">
-        <div class="dash-kpi-label">Reprov. por Impeditivo</div>
-        <div class="dash-kpi-valor" id="dash-kpi-imp">—</div>
-        <div class="dash-kpi-sub" id="dash-kpi-sub-imp">Item impeditivo NC</div>
-      </div>
-    </div>
+    <!-- Layout principal 2 colunas -->
+    <div class="dash-main-layout">
 
-    <!-- Gráficos -->
-    <div class="dash-charts-row">
-      <div class="dash-chart-card">
-        <div class="dash-chart-title">🍩 Aprovados vs Reprovados</div>
-        <div class="dash-chart-wrap">
-          <canvas id="chart-donut"></canvas>
+      <!-- COLUNA ESQUERDA: KPIs -->
+      <div class="dash-kpis-col">
+        <div class="dash-kpi">
+          <div class="dash-kpi-label">Total de Inspeções</div>
+          <div class="dash-kpi-valor" id="dash-kpi-total">—</div>
+          <div class="dash-kpi-sub">No período selecionado</div>
+        </div>
+        <div class="dash-kpi kpi-aprovado">
+          <div class="dash-kpi-label">Taxa de Aprovação</div>
+          <div class="dash-kpi-valor" id="dash-kpi-aprov">—</div>
+          <div class="dash-kpi-sub" id="dash-kpi-sub-aprov">—</div>
+        </div>
+        <div class="dash-kpi kpi-reprovado">
+          <div class="dash-kpi-label">Reprovações</div>
+          <div class="dash-kpi-valor" id="dash-kpi-repr">—</div>
+          <div class="dash-kpi-sub" id="dash-kpi-sub-repr">—</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-label">Média de Conformidade</div>
+          <div class="dash-kpi-valor" id="dash-kpi-media">—</div>
+          <div class="dash-kpi-sub">Média de itens conformes</div>
+        </div>
+        <div class="dash-kpi kpi-alerta">
+          <div class="dash-kpi-label">Reprov. por Impeditivo</div>
+          <div class="dash-kpi-valor" id="dash-kpi-imp">—</div>
+          <div class="dash-kpi-sub">Item impeditivo NC</div>
+        </div>
+        <div class="dash-kpi">
+          <div class="dash-kpi-label">Veículos Distintos</div>
+          <div class="dash-kpi-valor" id="dash-kpi-veiculos">—</div>
+          <div class="dash-kpi-sub">Placas inspecionadas</div>
+        </div>
+        <div class="dash-kpi kpi-reprovado">
+          <div class="dash-kpi-label">Pior Placa</div>
+          <div class="dash-kpi-valor" id="dash-kpi-pior-placa" style="font-size:18px">—</div>
+          <div class="dash-kpi-sub" id="dash-kpi-pior-placa-sub">Mais reprovações</div>
         </div>
       </div>
-      <div class="dash-chart-card">
-        <div class="dash-chart-title">📅 Inspeções por Dia</div>
-        <div class="dash-chart-wrap">
-          <canvas id="chart-linha"></canvas>
+
+      <!-- COLUNA DIREITA: gráficos e rankings -->
+      <div class="dash-charts-col">
+
+        <!-- Donut + Barras -->
+        <div class="dash-charts-row">
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">🍩 Aprovados vs Reprovados</div>
+            <div class="dash-chart-wrap"><canvas id="chart-donut"></canvas></div>
+          </div>
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">📅 Inspeções por Dia</div>
+            <div class="dash-chart-wrap"><canvas id="chart-linha"></canvas></div>
+          </div>
         </div>
+
+        <!-- Rankings lado a lado -->
+        <div class="dash-rankings-row">
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">🚨 Top 10 — Itens Mais Não Conformes</div>
+            <div id="dash-nc-lista"></div>
+          </div>
+          <div class="dash-chart-card">
+            <div class="dash-chart-title">🏆 Ranking — Placas Mais Reprovadas</div>
+            <div id="dash-ranking-placas"></div>
+          </div>
+        </div>
+
       </div>
-    </div>
-
-    <!-- Ranking NC Itens -->
-    <div class="dash-chart-card" style="margin-bottom:20px">
-      <div class="dash-chart-title">🚨 Top 10 — Itens Mais Não Conformes</div>
-      <div id="dash-nc-lista"></div>
-    </div>
-
-    <!-- Ranking Placas -->
-    <div class="dash-chart-card" style="margin-bottom:24px">
-      <div class="dash-chart-title">🏆 Ranking de Placas — Mais Reprovações</div>
-      <div id="dash-ranking-placas"></div>
     </div>
 
   </div>
