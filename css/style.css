@@ -714,11 +714,10 @@ tbody tr { cursor: default; transition: background var(--trans); }
 }
 .login-brand .brand-icon-lg {
   width: 56px; height: 56px;
-  background: var(--cor-primaria);
   border-radius: var(--radius-md);
   display: flex; align-items: center; justify-content: center;
-  font-size: 28px;
   margin: 0 auto 16px;
+  overflow: hidden;
   box-shadow: 0 4px 16px rgba(61,111,255,0.35);
 }
 .login-brand h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.03em; color: var(--cor-texto); }
