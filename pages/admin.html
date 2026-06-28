@@ -51,8 +51,8 @@
   </div>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="tab-historico">📊 Resultados</button>
-    <button class="tab-btn" data-tab="tab-dashboard">📈 Dashboard</button>
+    <button class="tab-btn" data-tab="tab-historico">📊 Resultados</button>
+    <button class="tab-btn active" data-tab="tab-dashboard">📈 Dashboard</button>
     <button class="tab-btn" data-tab="tab-placas">🚗 Placas</button>
     <button class="tab-btn" data-tab="tab-itens">📋 Itens</button>
     <button class="tab-btn" data-tab="tab-usuarios">👤 Usuários</button>
@@ -60,7 +60,7 @@
   </div>
 
   <!-- TAB: HISTÓRICO -->
-  <div id="tab-historico" class="tab-content active">
+  <div id="tab-historico" class="tab-content">
     <div class="filtros-wrap">
       <input type="text" id="filtro-busca" class="form-control" placeholder="🔍 Buscar motorista ou placa...">
       <input type="text" id="filtro-placa-hist" class="form-control" placeholder="Filtrar por placa..." style="max-width:180px">
@@ -82,7 +82,7 @@
   </div>
 
   <!-- TAB: DASHBOARD -->
-  <div id="tab-dashboard" class="tab-content">
+  <div id="tab-dashboard" class="tab-content active">
 
     <!-- Filtros -->
     <div class="dashboard-filtros">
@@ -132,16 +132,8 @@
           <div class="dash-kpi-valor" id="dash-kpi-total">—</div>
           <div class="dash-kpi-sub">No período selecionado</div>
         </div>
-        <div class="dash-kpi kpi-aprovado">
-          <div class="dash-kpi-label">Taxa de Aprovação</div>
-          <div class="dash-kpi-valor" id="dash-kpi-aprov">—</div>
-          <div class="dash-kpi-sub" id="dash-kpi-sub-aprov">—</div>
-        </div>
-        <div class="dash-kpi kpi-reprovado">
-          <div class="dash-kpi-label">Reprovações</div>
-          <div class="dash-kpi-valor" id="dash-kpi-repr">—</div>
-          <div class="dash-kpi-sub" id="dash-kpi-sub-repr">—</div>
-        </div>
+
+
         <div class="dash-kpi">
           <div class="dash-kpi-label">Média de Conformidade</div>
           <div class="dash-kpi-valor" id="dash-kpi-media">—</div>
