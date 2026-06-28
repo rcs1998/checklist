@@ -152,6 +152,7 @@ async function init() {
     await Promise.all([carregarSecoes(), carregarItens(), carregarPlacas()]);
     await Promise.all([carregarChecklists(), carregarUsuarios()]);
     renderizarEstatisticas();
+    renderizarDashboard(); // dashboard é a aba inicial
   } catch (e) {
     console.error('Erro na inicialização:', e);
     toast('Erro ao inicializar o painel. Recarregue a página.', 'error');
@@ -351,13 +352,9 @@ function renderizarKPIs(lista) {
     .sort(([, a], [, b]) => (b.repr / b.total) - (a.repr / a.total))[0];
 
   document.getElementById('dash-kpi-total').textContent = total;
-  document.getElementById('dash-kpi-aprov').textContent = taxa + '%';
-  document.getElementById('dash-kpi-repr').textContent  = repr;
   document.getElementById('dash-kpi-media').textContent = media + '%';
   document.getElementById('dash-kpi-imp').textContent   = imp;
   document.getElementById('dash-kpi-veiculos').textContent = placasDistintas;
-  document.getElementById('dash-kpi-sub-aprov').textContent = `${aprov} de ${total} inspeções`;
-  document.getElementById('dash-kpi-sub-repr').textContent  = `${repr} reprovações no período`;
 
   const piorEl    = document.getElementById('dash-kpi-pior-placa');
   const piorSubEl = document.getElementById('dash-kpi-pior-placa-sub');
