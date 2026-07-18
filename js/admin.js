@@ -193,7 +193,10 @@ function renderizarPlacas() {
   el.innerHTML = placas.map(p => `
     <div class="item-lista ${p.ativo ? '' : 'inativo'}">
       <div class="item-lista-info">
-        <div class="placa-chip ${p.ativo ? '' : 'inativa'}">🚗 ${p.placa}</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="placa-chip ${p.ativo ? '' : 'inativa'}">🚗 ${p.placa}</div>
+          ${p.modelo ? `<span style="font-size:13px;font-weight:500;color:var(--cor-texto-2)">${p.modelo}</span>` : ''}
+        </div>
         <div class="item-lista-meta" style="margin-top:6px">
           ${p.ativo ? '<span class="badge badge-aprovado">Ativa</span>' : '<span class="badge badge-reprovado">Inativa</span>'}
           <span style="font-size:12px;color:var(--cor-texto-3)">Cadastrada em ${formatarDataHora(p.criadoEm)}</span>
@@ -210,8 +213,9 @@ function renderizarPlacas() {
 
 document.getElementById('btn-add-placa')?.addEventListener('click', () => {
   document.getElementById('modal-placa-titulo').textContent = 'Nova Placa';
-  document.getElementById('placa-id').value    = '';
-  document.getElementById('placa-input').value = '';
+  document.getElementById('placa-id').value     = '';
+  document.getElementById('placa-input').value  = '';
+  document.getElementById('placa-modelo').value = '';
   abrirModal('modal-placa');
 });
 
@@ -219,8 +223,9 @@ window.editarPlaca = (id) => {
   const p = placas.find(x => x.id === id);
   if (!p) return;
   document.getElementById('modal-placa-titulo').textContent = 'Editar Placa';
-  document.getElementById('placa-id').value    = p.id;
-  document.getElementById('placa-input').value = p.placa;
+  document.getElementById('placa-id').value     = p.id;
+  document.getElementById('placa-input').value  = p.placa;
+  document.getElementById('placa-modelo').value = p.modelo || '';
   abrirModal('modal-placa');
 };
 
@@ -229,12 +234,13 @@ document.getElementById('btn-salvar-placa')?.addEventListener('click', async () 
   const placa = normalizarPlaca(document.getElementById('placa-input').value);
   if (!validarPlaca(placa)) { toast('Formato de placa inválido. Use ABC1234 ou ABC1D23.', 'error'); return; }
   if (placas.find(p => p.placa === placa && p.id !== id)) { toast('Essa placa já está cadastrada.', 'error'); return; }
+  const modelo = document.getElementById('placa-modelo').value.trim();
   try {
     if (id) {
-      await updateDoc(doc(db, 'placas', id), { placa });
+      await updateDoc(doc(db, 'placas', id), { placa, modelo });
       toast('Placa atualizada!', 'success');
     } else {
-      await addDoc(collection(db, 'placas'), { placa, ativo: true, criadoEm: serverTimestamp() });
+      await addDoc(collection(db, 'placas'), { placa, modelo, ativo: true, criadoEm: serverTimestamp() });
       toast('Placa cadastrada!', 'success');
     }
     fecharModal('modal-placa');
