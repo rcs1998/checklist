@@ -2,39 +2,40 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMzRDZGRkYiLz4KICA8IS0tIENvcnBvIGRvIGNhcnJvIC0tPgogIDxyZWN0IHg9IjgiIHk9IjI4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTYiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPgogIDwhLS0gVGV0byBkbyBjYXJybyAtLT4KICA8cGF0aCBkPSJNMTggMjggTDIyIDE4IEw0MiAxOCBMNDYgMjhaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDwhLS0gSmFuZWxhcyAtLT4KICA8cGF0aCBkPSJNMjMgMjcgTDI2IDIwIEwzOCAyMCBMNDEgMjdaIiBmaWxsPSIjM0Q2RkZGIi8+CiAgPCEtLSBSb2RhcyAtLT4KICA8Y2lyY2xlIGN4PSIxOSIgY3k9IjQ0IiByPSI2IiBmaWxsPSIjMUExRDJFIi8+CiAgPGNpcmNsZSBjeD0iMTkiIGN5PSI0NCIgcj0iMyIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNCIvPgogIDxjaXJjbGUgY3g9IjQ1IiBjeT0iNDQiIHI9IjYiIGZpbGw9IiMxQTFEMkUiLz4KICA8Y2lyY2xlIGN4PSI0NSIgY3k9IjQ0IiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC40Ii8+CiAgPCEtLSBGYXJvbCAtLT4KICA8cmVjdCB4PSI4IiB5PSIzMCIgd2lkdGg9IjYiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNGRkQ3MDAiIG9wYWNpdHk9IjAuOSIvPgogIDwhLS0gTGFudGVybmEgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjMwIiB3aWR0aD0iNiIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iI0ZGNkI2QiIgb3BhY2l0eT0iMC45Ii8+CiAgPCEtLSBDaGVja21hcmsgLS0+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSIxNiIgcj0iOSIgZmlsbD0iIzAwQzg5NiIvPgogIDxwYXRoIGQ9Ik00NC41IDE2IEw0OC41IDIwIEw1NS41IDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+Cjwvc3ZnPgo=">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Admin — Checklist de Veículos</title>
   <link rel="stylesheet" href="../css/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
 </head>
 <body>
 
+<!-- NAVBAR -->
 <nav class="navbar">
-  <div class="navbar-left">
-    <a href="../index.html" class="btn btn-ghost btn-sm">📋 Checklist</a>
-  </div>
-  <a href="admin.html" class="navbar-brand">
-    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+CiAgPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTQiIGZpbGw9IiMzRDZGRkYiLz4KICA8IS0tIENvcnBvIGRvIGNhcnJvIC0tPgogIDxyZWN0IHg9IjgiIHk9IjI4IiB3aWR0aD0iNDgiIGhlaWdodD0iMTYiIHJ4PSI0IiBmaWxsPSJ3aGl0ZSIvPgogIDwhLS0gVGV0byBkbyBjYXJybyAtLT4KICA8cGF0aCBkPSJNMTggMjggTDIyIDE4IEw0MiAxOCBMNDYgMjhaIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC45NSIvPgogIDwhLS0gSmFuZWxhcyAtLT4KICA8cGF0aCBkPSJNMjMgMjcgTDI2IDIwIEwzOCAyMCBMNDEgMjdaIiBmaWxsPSIjM0Q2RkZGIi8+CiAgPCEtLSBSb2RhcyAtLT4KICA8Y2lyY2xlIGN4PSIxOSIgY3k9IjQ0IiByPSI2IiBmaWxsPSIjMUExRDJFIi8+CiAgPGNpcmNsZSBjeD0iMTkiIGN5PSI0NCIgcj0iMyIgZmlsbD0id2hpdGUiIG9wYWNpdHk9IjAuNCIvPgogIDxjaXJjbGUgY3g9IjQ1IiBjeT0iNDQiIHI9IjYiIGZpbGw9IiMxQTFEMkUiLz4KICA8Y2lyY2xlIGN4PSI0NSIgY3k9IjQ0IiByPSIzIiBmaWxsPSJ3aGl0ZSIgb3BhY2l0eT0iMC40Ii8+CiAgPCEtLSBGYXJvbCAtLT4KICA8cmVjdCB4PSI4IiB5PSIzMCIgd2lkdGg9IjYiIGhlaWdodD0iNCIgcng9IjEiIGZpbGw9IiNGRkQ3MDAiIG9wYWNpdHk9IjAuOSIvPgogIDwhLS0gTGFudGVybmEgLS0+CiAgPHJlY3QgeD0iNTAiIHk9IjMwIiB3aWR0aD0iNiIgaGVpZ2h0PSI0IiByeD0iMSIgZmlsbD0iI0ZGNkI2QiIgb3BhY2l0eT0iMC45Ii8+CiAgPCEtLSBDaGVja21hcmsgLS0+CiAgPGNpcmNsZSBjeD0iNTAiIGN5PSIxNiIgcj0iOSIgZmlsbD0iIzAwQzg5NiIvPgogIDxwYXRoIGQ9Ik00NC41IDE2IEw0OC41IDIwIEw1NS41IDEyIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+Cjwvc3ZnPgo=" class="brand-logo" alt="Logo">
+  <div class="navbar-brand">
+    <div class="brand-icon">🚗</div>
     Checklist de Veículos
-  </a>
+  </div>
   <div class="navbar-actions">
-    <span id="user-email" style="font-size:12px;color:var(--cor-texto-3);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+    <span id="user-email" style="font-size:13px;color:var(--cor-texto-3)"></span>
+    <a href="../index.html" class="btn btn-ghost btn-sm">📋 Checklist</a>
     <button id="btn-logout" class="btn btn-danger btn-sm">Sair</button>
   </div>
 </nav>
 
 <main class="page-admin">
 
+  <!-- Cabeçalho -->
   <div class="page-header">
     <div class="page-header-text">
       <h1>⚙️ Painel Administrativo</h1>
-      <p>Gerencie resultados, placas, itens e usuários do sistema.</p>
+      <p>Gerencie resultados, placas e itens do checklist.</p>
     </div>
-    <a href="../index.html" class="btn btn-primary">➕ Novo Checklist</a>
+    <a href="../index.html" class="btn btn-primary">
+      ➕ Novo Checklist
+    </a>
   </div>
 
+  <!-- Estatísticas -->
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-label">Total de Inspeções</div>
@@ -50,17 +51,16 @@
     </div>
   </div>
 
+  <!-- Tabs -->
   <div class="tabs">
-    <button class="tab-btn" data-tab="tab-historico">📊 Resultados</button>
-    <button class="tab-btn active" data-tab="tab-dashboard">📈 Dashboard</button>
+    <button class="tab-btn active" data-tab="tab-historico">📊 Resultados</button>
     <button class="tab-btn" data-tab="tab-placas">🚗 Placas</button>
-    <button class="tab-btn" data-tab="tab-itens">📋 Itens</button>
+    <button class="tab-btn" data-tab="tab-itens">📋 Itens do Checklist</button>
     <button class="tab-btn" data-tab="tab-usuarios">👤 Usuários</button>
-    <button class="tab-btn" data-tab="tab-auditoria">🔍 Auditoria</button>
   </div>
 
-  <!-- TAB: HISTÓRICO -->
-  <div id="tab-historico" class="tab-content">
+  <!-- ===== TAB: HISTÓRICO ===== -->
+  <div id="tab-historico" class="tab-content active">
     <div class="filtros-wrap">
       <input type="text" id="filtro-busca" class="form-control" placeholder="🔍 Buscar motorista ou placa...">
       <input type="text" id="filtro-placa-hist" class="form-control" placeholder="Filtrar por placa..." style="max-width:180px">
@@ -70,125 +70,21 @@
         <option value="reprovado">❌ Reprovados</option>
       </select>
     </div>
+
     <div id="hist-loading" class="loading-state">
       <div class="spinner"></div>
       <span>Carregando inspeções...</span>
     </div>
+
     <div id="hist-empty" class="empty-state hidden">
       <div class="empty-icon">📭</div>
       <p>Nenhum checklist encontrado com os filtros aplicados.</p>
     </div>
+
     <div id="hist-lista"></div>
   </div>
 
-  <!-- TAB: DASHBOARD -->
-  <div id="tab-dashboard" class="tab-content active">
-
-    <!-- Filtros -->
-    <div class="dashboard-filtros">
-      <div class="form-group" style="min-width:160px;margin-bottom:0">
-        <label>Tipo de filtro</label>
-        <select id="dash-filtro-tipo" class="form-control">
-          <option value="mes">Por mês</option>
-          <option value="custom">Período personalizado</option>
-        </select>
-      </div>
-      <div id="dash-filtros-mes" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="min-width:130px;margin-bottom:0">
-          <label>Mês</label>
-          <select id="dash-mes" class="form-control">
-            <option value="1">Janeiro</option><option value="2">Fevereiro</option>
-            <option value="3">Março</option><option value="4">Abril</option>
-            <option value="5">Maio</option><option value="6">Junho</option>
-            <option value="7">Julho</option><option value="8">Agosto</option>
-            <option value="9">Setembro</option><option value="10">Outubro</option>
-            <option value="11">Novembro</option><option value="12">Dezembro</option>
-          </select>
-        </div>
-        <div class="form-group" style="min-width:90px;margin-bottom:0">
-          <label>Ano</label>
-          <select id="dash-ano" class="form-control"></select>
-        </div>
-      </div>
-      <div id="dash-filtros-custom" class="hidden" style="gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div class="form-group" style="margin-bottom:0">
-          <label>De</label>
-          <input type="date" id="dash-de" class="form-control">
-        </div>
-        <div class="form-group" style="margin-bottom:0">
-          <label>Até</label>
-          <input type="date" id="dash-ate" class="form-control">
-        </div>
-      </div>
-    </div>
-
-    <!-- Layout principal 2 colunas -->
-    <div class="dash-main-layout">
-
-      <!-- COLUNA ESQUERDA: KPIs -->
-      <div class="dash-kpis-col">
-        <div class="dash-kpi">
-          <div class="dash-kpi-label">Total de Inspeções</div>
-          <div class="dash-kpi-valor" id="dash-kpi-total">—</div>
-          <div class="dash-kpi-sub">No período selecionado</div>
-        </div>
-
-
-        <div class="dash-kpi">
-          <div class="dash-kpi-label">Média de Conformidade</div>
-          <div class="dash-kpi-valor" id="dash-kpi-media">—</div>
-          <div class="dash-kpi-sub">Média de itens conformes</div>
-        </div>
-        <div class="dash-kpi kpi-alerta">
-          <div class="dash-kpi-label">Reprov. por Impeditivo</div>
-          <div class="dash-kpi-valor" id="dash-kpi-imp">—</div>
-          <div class="dash-kpi-sub">Item impeditivo NC</div>
-        </div>
-        <div class="dash-kpi">
-          <div class="dash-kpi-label">Veículos Distintos</div>
-          <div class="dash-kpi-valor" id="dash-kpi-veiculos">—</div>
-          <div class="dash-kpi-sub">Placas inspecionadas</div>
-        </div>
-        <div class="dash-kpi kpi-reprovado">
-          <div class="dash-kpi-label">Pior Placa</div>
-          <div class="dash-kpi-valor" id="dash-kpi-pior-placa" style="font-size:18px">—</div>
-          <div class="dash-kpi-sub" id="dash-kpi-pior-placa-sub">Mais reprovações</div>
-        </div>
-      </div>
-
-      <!-- COLUNA DIREITA: gráficos e rankings -->
-      <div class="dash-charts-col">
-
-        <!-- Donut + Barras -->
-        <div class="dash-charts-row">
-          <div class="dash-chart-card">
-            <div class="dash-chart-title">🍩 Aprovados vs Reprovados</div>
-            <div class="dash-chart-wrap"><canvas id="chart-donut"></canvas></div>
-          </div>
-          <div class="dash-chart-card">
-            <div class="dash-chart-title">📅 Inspeções por Dia</div>
-            <div class="dash-chart-wrap"><canvas id="chart-linha"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Rankings lado a lado -->
-        <div class="dash-rankings-row">
-          <div class="dash-chart-card">
-            <div class="dash-chart-title">🚨 Top 10 — Itens Mais Não Conformes</div>
-            <div id="dash-nc-lista"></div>
-          </div>
-          <div class="dash-chart-card">
-            <div class="dash-chart-title">🏆 Ranking — Placas Mais Reprovadas</div>
-            <div id="dash-ranking-placas"></div>
-          </div>
-        </div>
-
-      </div>
-    </div>
-
-  </div>
-
-  <!-- TAB: PLACAS -->
+  <!-- ===== TAB: PLACAS ===== -->
   <div id="tab-placas" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <button id="btn-add-placa" class="btn btn-primary">➕ Nova Placa</button>
@@ -198,7 +94,7 @@
     </div>
   </div>
 
-  <!-- TAB: ITENS -->
+  <!-- ===== TAB: ITENS ===== -->
   <div id="tab-itens" class="tab-content">
     <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
       <button id="btn-add-item" class="btn btn-primary">➕ Novo Item</button>
@@ -208,42 +104,24 @@
     </div>
   </div>
 
-  <!-- TAB: USUÁRIOS -->
+  <!-- ===== TAB: USUÁRIOS ===== -->
   <div id="tab-usuarios" class="tab-content">
-    <div style="display:flex;justify-content:flex-end;margin-bottom:16px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;gap:12px;flex-wrap:wrap">
+      <div style="font-size:13px;color:var(--cor-texto-3);max-width:480px;line-height:1.6">
+        Usuários com acesso ao painel administrativo. Você não pode excluir a si mesmo.
+      </div>
       <button id="btn-add-usuario" class="btn btn-primary">➕ Novo Usuário</button>
     </div>
-    <div id="lista-usuarios">
-      <div class="loading-state"><div class="spinner"></div><span>Carregando usuários...</span></div>
+    <div id="usuarios-empty" class="empty-state hidden">
+      <div class="empty-icon">👤</div>
+      <p>Nenhum usuário cadastrado ainda.</p>
     </div>
-  </div>
-
-  <!-- TAB: AUDITORIA -->
-  <div id="tab-auditoria" class="tab-content">
-    <div class="filtros-wrap" style="margin-bottom:20px">
-      <input type="text" id="audit-busca" class="form-control" placeholder="🔍 Buscar por usuário, ação ou placa...">
-      <select id="audit-filtro-acao" class="form-control" style="max-width:220px">
-        <option value="">Todas as ações</option>
-        <option value="placa">🚗 Placas</option>
-        <option value="item">📋 Itens</option>
-        <option value="usuario">👤 Usuários</option>
-        <option value="checklist">📊 Checklists</option>
-        <option value="senha">🔑 Senhas</option>
-      </select>
-    </div>
-    <div id="audit-loading" class="loading-state">
-      <div class="spinner"></div><span>Carregando auditoria...</span>
-    </div>
-    <div id="audit-empty" class="empty-state hidden">
-      <div class="empty-icon">🔍</div>
-      <p>Nenhum registro encontrado.</p>
-    </div>
-    <div id="audit-lista"></div>
+    <div id="lista-usuarios"></div>
   </div>
 
 </main>
 
-<!-- MODAL: DETALHE DO CHECKLIST -->
+<!-- ========== MODAL: DETALHE DO CHECKLIST ========== -->
 <div id="modal-detalhe" class="modal-backdrop hidden">
   <div class="modal modal-lg">
     <div class="modal-header">
@@ -251,7 +129,12 @@
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;background:var(--cor-surface-2);border-radius:var(--radius-md);padding:16px;margin-bottom:20px">
+      <!-- Resumo -->
+      <div style="
+        display:grid;grid-template-columns:1fr 1fr;gap:12px;
+        background:var(--cor-surface-2);border-radius:var(--radius-md);
+        padding:16px;margin-bottom:20px
+      ">
         <div>
           <div style="font-size:11px;color:var(--cor-texto-3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px">Placa</div>
           <div id="det-placa" style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:700;letter-spacing:.08em"></div>
@@ -273,17 +156,18 @@
           <div id="det-percentual" style="font-size:14px;font-weight:600"></div>
         </div>
       </div>
+
+      <!-- Itens -->
       <div id="det-itens"></div>
     </div>
     <div class="modal-footer">
       <button id="btn-det-pdf" class="btn btn-ghost">📄 Exportar PDF</button>
-      <button id="btn-det-excluir" class="btn btn-danger hidden">🗑️ Excluir</button>
       <button class="btn btn-primary modal-close">Fechar</button>
     </div>
   </div>
 </div>
 
-<!-- MODAL: PLACA -->
+<!-- ========== MODAL: PLACA ========== -->
 <div id="modal-placa" class="modal-backdrop hidden">
   <div class="modal">
     <div class="modal-header">
@@ -294,14 +178,15 @@
       <input type="hidden" id="placa-id">
       <div class="form-group">
         <label class="form-label" for="placa-input">Placa <span class="req">*</span></label>
-        <input type="text" id="placa-input" class="form-control" placeholder="ABC1234" maxlength="8"
-          style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em">
+        <input
+          type="text"
+          id="placa-input"
+          class="form-control"
+          placeholder="ABC1234"
+          maxlength="8"
+          style="text-transform:uppercase;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:18px;letter-spacing:.08em"
+        >
         <span class="form-hint">Formato: ABC1234 (antiga) ou ABC1D23 (Mercosul)</span>
-      </div>
-      <div class="form-group">
-        <label class="form-label" for="placa-modelo">Modelo do Veículo</label>
-        <input type="text" id="placa-modelo" class="form-control" placeholder="Ex: Toyota Corolla 2022" maxlength="80">
-        <span class="form-hint">Opcional. Aparecerá na tela de confirmação e no resultado.</span>
       </div>
     </div>
     <div class="modal-footer">
@@ -311,7 +196,7 @@
   </div>
 </div>
 
-<!-- MODAL: ITEM DO CHECKLIST -->
+<!-- ========== MODAL: ITEM DO CHECKLIST ========== -->
 <div id="modal-item" class="modal-backdrop hidden">
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
@@ -320,6 +205,7 @@
     </div>
     <div class="modal-body">
       <input type="hidden" id="item-id">
+
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
         <div class="form-group">
           <label class="form-label" for="item-numero">Número <span class="req">*</span></label>
@@ -327,17 +213,22 @@
         </div>
         <div class="form-group">
           <label class="form-label" for="item-secao">Seção <span class="req">*</span></label>
-          <select id="item-secao" class="form-control"></select>
+          <select id="item-secao" class="form-control">
+            <!-- Preenchido via JS -->
+          </select>
         </div>
       </div>
+
       <div class="form-group">
         <label class="form-label" for="item-nome">Nome do Item <span class="req">*</span></label>
         <input type="text" id="item-nome" class="form-control" placeholder="Ex: Nível de óleo do motor">
       </div>
+
       <div class="form-group">
         <label class="form-label" for="item-param">Parâmetro / Critério <span class="req">*</span></label>
-        <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado..."></textarea>
+        <textarea id="item-param" class="form-control" rows="3" placeholder="Descreva o que deve ser verificado e os critérios de conformidade..."></textarea>
       </div>
+
       <div style="display:flex;gap:24px;flex-wrap:wrap">
         <div class="toggle-wrap">
           <label class="toggle">
@@ -354,7 +245,16 @@
           <span class="toggle-label">🚫 Permite "Não se Aplica"</span>
         </div>
       </div>
-      <div style="margin-top:16px;padding:12px;background:var(--cor-fundo);border-radius:var(--radius-sm);font-size:12px;color:var(--cor-texto-3);border:1px solid var(--cor-borda)">
+
+      <div style="
+        margin-top:16px;
+        padding:12px;
+        background:var(--cor-fundo);
+        border-radius:var(--radius-sm);
+        font-size:12px;
+        color:var(--cor-texto-3);
+        border:1px solid var(--cor-borda)
+      ">
         ⛔ <strong>Impeditivo:</strong> se marcado como "Não Conforme", o veículo será automaticamente reprovado.<br>
         🚫 <strong>Não se Aplica:</strong> permite que o motorista marque N/A para este item.
       </div>
@@ -366,51 +266,35 @@
   </div>
 </div>
 
-<!-- MODAL: NOVO USUÁRIO -->
+<!-- ========== MODAL: NOVO USUÁRIO ========== -->
 <div id="modal-usuario" class="modal-backdrop hidden">
-  <div class="modal" style="max-width:480px">
+  <div class="modal">
     <div class="modal-header">
       <h3>👤 Novo Usuário</h3>
       <button class="modal-close">✕</button>
     </div>
     <div class="modal-body">
-      <div id="usuario-modal-erro" class="hidden" style="background:var(--cor-reprovado-dim);border:1px solid var(--cor-reprovado);color:var(--cor-reprovado);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px;"></div>
-      <div class="form-group">
-        <label class="form-label" for="usuario-nome">Nome completo <span class="req">*</span></label>
-        <input type="text" id="usuario-nome" class="form-control" placeholder="Ex: João Silva" autocomplete="off">
-      </div>
+      <div id="usuario-erro" class="hidden" style="background:var(--cor-reprovado-dim);border:1px solid var(--cor-reprovado);color:var(--cor-reprovado);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;margin-bottom:16px"></div>
       <div class="form-group">
         <label class="form-label" for="usuario-email">E-mail <span class="req">*</span></label>
-        <input type="email" id="usuario-email" class="form-control" placeholder="usuario@email.com" autocomplete="off">
+        <input type="email" id="usuario-email" class="form-control" placeholder="email@exemplo.com">
       </div>
       <div class="form-group">
         <label class="form-label" for="usuario-senha">Senha temporária <span class="req">*</span></label>
-        <div style="position:relative">
-          <input type="password" id="usuario-senha" class="form-control" placeholder="Mínimo 6 caracteres" autocomplete="new-password" style="padding-right:44px">
-          <button type="button" id="toggle-usuario-senha" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--cor-texto-3);padding:0;">👁️</button>
-        </div>
-        <span class="form-hint">O usuário será obrigado a criar uma nova senha no primeiro acesso.</span>
+        <input type="password" id="usuario-senha" class="form-control" placeholder="Mínimo 6 caracteres">
+        <span class="form-hint">O usuário poderá alterar a senha depois pelo Firebase.</span>
       </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-ghost modal-close">Cancelar</button>
-      <button id="btn-salvar-usuario" class="btn btn-primary">Criar Usuário</button>
+      <button id="btn-salvar-usuario" class="btn btn-primary">Cadastrar Usuário</button>
     </div>
   </div>
 </div>
 
+<!-- Toast container -->
 <div id="toast-container"></div>
 
-<script type="module">
-  const selAno = document.getElementById('dash-ano');
-  const anoAtual = new Date().getFullYear();
-  for (let a = anoAtual; a >= anoAtual - 4; a--) {
-    const opt = document.createElement('option');
-    opt.value = a; opt.textContent = a;
-    selAno.appendChild(opt);
-  }
-  document.getElementById('dash-mes').value = new Date().getMonth() + 1;
-</script>
 <script type="module" src="../js/admin.js"></script>
 </body>
 </html>
