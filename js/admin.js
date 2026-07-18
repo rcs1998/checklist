@@ -7,7 +7,7 @@ import {
   doc, query, where, orderBy, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
-  onAuthStateChanged, signOut
+  onAuthStateChanged, signOut, sendPasswordResetEmail
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   toast, abrirModal, fecharModal, confirmar,
@@ -397,17 +397,26 @@ function renderizarUsuarios() {
   empty?.classList.add('hidden');
   el.innerHTML = usuarios.map(u => {
     const souEu = u.email === usuarioAtual?.email;
+    const ativo = u.ativo !== false;
     return `
-    <div class="item-lista">
+    <div class="item-lista ${ativo ? '' : 'inativo'}">
       <div class="item-lista-info">
         <div class="item-lista-nome">👤 ${u.email}</div>
         <div class="item-lista-meta" style="margin-top:5px">
           ${souEu ? '<span class="badge badge-aprovado">Você</span>' : ''}
+          ${!souEu && ativo  ? '<span class="badge badge-aprovado">Ativo</span>'    : ''}
+          ${!souEu && !ativo ? '<span class="badge badge-reprovado">Inativo</span>' : ''}
           <span style="font-size:12px;color:var(--cor-texto-3)">Cadastrado em ${formatarDataHora(u.criadoEm)}</span>
         </div>
       </div>
       <div class="item-lista-actions">
-        ${souEu ? '' : `<button class="btn btn-danger btn-sm" onclick="excluirUsuario('${u.id}', '${u.email}')">🗑️ Excluir</button>`}
+        ${souEu ? '' : `
+          <button class="btn btn-ghost btn-sm" onclick="redefinirSenhaUsuario('${u.id}', '${u.email}')">🔑 Senha</button>
+          <button class="btn btn-sm ${ativo ? 'btn-danger' : 'btn-ghost'}" onclick="toggleUsuario('${u.id}', ${ativo})">
+            ${ativo ? '🔒 Inativar' : '🔓 Ativar'}
+          </button>
+          <button class="btn btn-danger btn-sm" onclick="excluirUsuario('${u.id}', '${u.email}')">🗑️</button>
+        `}
       </div>
     </div>`;
   }).join('');
@@ -490,6 +499,31 @@ window.excluirUsuario = async (id, email) => {
     await carregarUsuarios();
   } catch (e) {
     toast('Erro ao excluir usuário.', 'error');
+  }
+};
+
+
+window.toggleUsuario = async (id, ativo) => {
+  if (!confirmar(`Deseja ${ativo ? 'inativar' : 'ativar'} este usuário?`)) return;
+  try {
+    await updateDoc(doc(db, 'usuarios', id), { ativo: !ativo });
+    toast(`Usuário ${ativo ? 'inativado' : 'ativado'}!`, 'success');
+    await carregarUsuarios();
+  } catch (e) { toast('Erro ao alterar status do usuário.', 'error'); }
+};
+
+window.redefinirSenhaUsuario = async (id, email) => {
+  if (!confirmar(`Enviar e-mail de redefinição de senha para "${email}"?`)) return;
+  try {
+    await sendPasswordResetEmail(auth, email);
+    toast(`E-mail de redefinição enviado para ${email}!`, 'success');
+  } catch (e) {
+    const msgs = {
+      'auth/user-not-found': 'Usuário não encontrado no Firebase Auth.',
+      'auth/invalid-email':  'E-mail inválido.',
+      'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos.',
+    };
+    toast(msgs[e.code] || `Erro: ${e.message}`, 'error');
   }
 };
 
