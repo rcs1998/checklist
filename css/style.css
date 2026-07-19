@@ -319,6 +319,13 @@ tbody tr { cursor: default; transition: background var(--trans); }
   flex-shrink: 0;
 }
 .modal-close:hover { background: var(--cor-surface-2); color: var(--cor-texto); }
+/* Botões de texto (Cancelar/Fechar) reaproveitam .modal-close só para o
+   comportamento de fechar no clique (ver admin.js). Sem isso, herdavam a
+   caixa fixa de 32x32px pensada para o ícone "✕" e o texto ficava cortado. */
+.btn.modal-close {
+  width: auto;
+  height: auto;
+}
 .modal-footer {
   display: flex;
   gap: 10px;
