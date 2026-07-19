@@ -287,6 +287,8 @@ tbody tr { cursor: default; transition: background var(--trans); }
   width: 100%;
   max-width: 520px;
   max-height: 90vh;
+  min-width: 0;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   animation: modalIn .2s ease;
