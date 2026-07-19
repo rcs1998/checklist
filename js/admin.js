@@ -1,7 +1,7 @@
 // ============================================================
 // ADMIN.JS — Resultados, Placas, Itens, Usuários e Dashboard
 // ============================================================
-import { db, auth } from "./firebase-config.js";
+import { db, auth, app } from "./firebase-config.js";
 import {
   collection, getDocs, addDoc, updateDoc, deleteDoc,
   doc, query, orderBy, serverTimestamp, getDoc, setDoc
@@ -11,8 +11,10 @@ import {
   sendPasswordResetEmail,
   createUserWithEmailAndPassword,
   updatePassword,
-  signOut
+  signOut,
+  getAuth
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { initializeApp, deleteApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import {
   toast, abrirModal, fecharModal, confirmar,
   formatarDataHora, normalizarPlaca, validarPlaca,
@@ -27,9 +29,12 @@ let checklists     = [];
 let usuarios       = [];
 let checklistDetalhe = null;
 let usuarioAtual   = null;
-let isSuperAdmin   = false;   // true somente para o criador (sem criadoPor no doc)
+let isSuperAdmin   = false;   // true somente para o UID fixo do master (MASTER_UID)
 let chartDonut     = null;
 let chartLine      = null;
+
+// UID fixo da conta master — não depende de existir (ou não) documento no Firestore
+const MASTER_UID = '4DntOszrgNfqQuKjS6AyQhWst5n2';
 
 // ---------- Guard de autenticação ----------
 onAuthStateChanged(auth, async (user) => {
@@ -41,24 +46,18 @@ onAuthStateChanged(auth, async (user) => {
   const emailEl = document.getElementById('user-email');
   if (emailEl) emailEl.textContent = user.email;
 
+  // Super admin = UID fixo do master (não depende de documento no Firestore)
+  isSuperAdmin = user.uid === MASTER_UID;
+
   // Verificar troca de senha obrigatória
   try {
     const userDoc = await getDoc(doc(db, 'usuarios', user.uid));
-    if (userDoc.exists()) {
-      const data = userDoc.data();
-      if (data.trocarSenha === true) {
-        mostrarTrocaSenha();
-        return;
-      }
-      // Super admin = criado diretamente no Firebase (sem campo criadoPor)
-      isSuperAdmin = !data.criadoPor;
-    } else {
-      // Sem doc = admin criado direto no console do Firebase → é o fundador
-      isSuperAdmin = true;
+    if (userDoc.exists() && userDoc.data().trocarSenha === true) {
+      mostrarTrocaSenha();
+      return;
     }
   } catch (e) {
-    // sem doc → fundador
-    isSuperAdmin = true;
+    // Sem doc ou sem permissão para lê-lo — segue sem exigir troca de senha
   }
 
   init();
@@ -781,11 +780,14 @@ async function carregarUsuarios() {
 function renderizarUsuarios() {
   const el = document.getElementById('lista-usuarios');
   if (!el) return;
-  if (!usuarios.length) {
+
+  const ativos    = usuarios.filter(u => !u.removido);
+  const removidos = usuarios.filter(u => u.removido);
+
+  if (!ativos.length) {
     el.innerHTML = `<div class="empty-state"><div class="empty-icon">👤</div><p>Nenhum usuário cadastrado ainda.</p><p style="font-size:13px;color:var(--cor-texto-3);margin-top:8px">O primeiro admin deve ser criado pelo console do Firebase.</p></div>`;
-    return;
-  }
-  el.innerHTML = usuarios.map(u => {
+  } else {
+    el.innerHTML = ativos.map(u => {
     const eVoce = u.email === usuarioAtual?.email;
     return `
     <div class="item-lista ${u.ativo ? '' : 'inativo'}">
@@ -807,9 +809,50 @@ function renderizarUsuarios() {
       <div class="item-lista-actions">
         <button class="btn btn-ghost btn-sm" onclick="enviarResetSenha('${u.email}')">🔑 Reset</button>
         ${eVoce ? '' : `<button class="btn btn-sm ${u.ativo ? 'btn-danger' : 'btn-ghost'}" onclick="toggleUsuario('${u.id}', ${u.ativo}, '${u.email}')">${u.ativo ? '🔒 Inativar' : '🔓 Ativar'}</button>`}
+        ${(isSuperAdmin && !eVoce) ? `<button class="btn btn-sm btn-danger" onclick="excluirUsuario('${u.id}', '${u.email}', '${(u.nome || '').replace(/'/g, "\\'")}')">🗑️ Remover</button>` : ''}
       </div>
     </div>`;
-  }).join('');
+    }).join('');
+  }
+
+  renderizarUsuariosRemovidos(removidos);
+}
+
+function renderizarUsuariosRemovidos(removidos) {
+  const wrap = document.getElementById('usuarios-removidos-wrap');
+  const el   = document.getElementById('lista-usuarios-removidos');
+  if (!wrap || !el) return;
+
+  if (!isSuperAdmin) {
+    wrap.classList.add('hidden');
+    return;
+  }
+  wrap.classList.remove('hidden');
+
+  if (!removidos.length) {
+    el.innerHTML = `<p style="font-size:13px;color:var(--cor-texto-3)">Nenhuma conta removida.</p>`;
+    return;
+  }
+
+  el.innerHTML = removidos.map(u => `
+    <div class="item-lista inativo">
+      <div class="item-lista-info">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:36px;height:36px;border-radius:50%;background:var(--cor-surface-2);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🗑️</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;color:var(--cor-texto)">${u.nome || '—'}</div>
+            <div style="font-size:12px;color:var(--cor-texto-3);font-family:'JetBrains Mono',monospace">${u.email}</div>
+          </div>
+        </div>
+        <div class="item-lista-meta" style="margin-top:10px;padding-left:46px">
+          <span class="badge badge-reprovado">🗑️ Removido</span>
+          <span style="font-size:12px;color:var(--cor-texto-3)">Removido em ${formatarDataHora(u.removidoEm)}</span>
+        </div>
+      </div>
+      <div class="item-lista-actions">
+        <button class="btn btn-sm btn-primary" onclick="restaurarUsuario('${u.id}', '${u.email}', '${(u.nome || '').replace(/'/g, "\\'")}')">♻️ Restaurar</button>
+      </div>
+    </div>`).join('');
 }
 
 document.getElementById('btn-add-usuario')?.addEventListener('click', () => {
@@ -831,24 +874,30 @@ document.getElementById('btn-salvar-usuario')?.addEventListener('click', async (
   const btn = document.getElementById('btn-salvar-usuario');
   btn.disabled = true; btn.textContent = 'Criando...';
 
+  // App Firebase secundário e isolado: cria o novo usuário sem afetar
+  // a sessão do admin logado no app principal (evita o logout indesejado)
+  const appSecundario  = initializeApp(app.options, 'app-criacao-usuario-' + Date.now());
+  const authSecundario = getAuth(appSecundario);
+
   try {
     const adminUid = usuarioAtual.uid;
-    const cred     = await createUserWithEmailAndPassword(auth, email, senha);
+    const cred     = await createUserWithEmailAndPassword(authSecundario, email, senha);
     await setDoc(doc(db, 'usuarios', cred.user.uid), {
       uid: cred.user.uid, nome, email, ativo: true,
       trocarSenha: true, criadoEm: serverTimestamp(), criadoPor: adminUid
     });
     await registrarAuditoria('usuario_cadastrado', { usuarioNome: nome, usuarioEmail: email, usuarioUid: cred.user.uid });
-    toast(`Usuário ${nome} criado! Redirecionando para reautenticar...`, 'success');
+    toast(`Usuário ${nome} criado com sucesso!`, 'success');
     fecharModal('modal-usuario');
     await carregarUsuarios();
-    setTimeout(async () => { await signOut(auth); window.location.href = 'login.html?msg=usuario-criado'; }, 2000);
   } catch (e) {
     const msgs = { 'auth/email-already-in-use':'E-mail já em uso.', 'auth/invalid-email':'E-mail inválido.', 'auth/weak-password':'Senha fraca.' };
     erroEl.textContent = msgs[e.code] || `Erro: ${e.message}`;
     erroEl.classList.remove('hidden');
   } finally {
     btn.disabled = false; btn.textContent = 'Criar Usuário';
+    try { await signOut(authSecundario); } catch (_) {}
+    try { await deleteApp(appSecundario); } catch (_) {}
   }
 });
 
@@ -861,6 +910,29 @@ window.toggleUsuario = async (id, ativo, email) => {
     toast(`Usuário ${ativo ? 'inativado' : 'ativado'}!`, 'success');
     await carregarUsuarios();
   } catch (e) { toast('Erro ao alterar status.', 'error'); }
+};
+
+window.excluirUsuario = async (id, email, nome) => {
+  if (!isSuperAdmin) { toast('Acesso restrito ao super administrador.', 'error'); return; }
+  if (email === usuarioAtual?.email) { toast('Você não pode remover a si mesmo.', 'error'); return; }
+  if (!confirmar(`Remover o acesso de ${email}? A conta some da lista principal e o login fica bloqueado. Você pode restaurar depois em "Contas Removidas".`)) return;
+  try {
+    await updateDoc(doc(db, 'usuarios', id), { removido: true, ativo: false, removidoEm: serverTimestamp() });
+    await registrarAuditoria('usuario_removido', { usuarioNome: nome, usuarioEmail: email, usuarioId: id });
+    toast(`Acesso de ${email} removido.`, 'success');
+    await carregarUsuarios();
+  } catch (e) { toast('Erro ao remover usuário.', 'error'); }
+};
+
+window.restaurarUsuario = async (id, email, nome) => {
+  if (!isSuperAdmin) { toast('Acesso restrito ao super administrador.', 'error'); return; }
+  if (!confirmar(`Restaurar a conta de ${email}? Ela volta a aparecer na lista principal, mas continuará inativa até você reativá-la.`)) return;
+  try {
+    await updateDoc(doc(db, 'usuarios', id), { removido: false });
+    await registrarAuditoria('usuario_restaurado', { usuarioNome: nome, usuarioEmail: email, usuarioId: id });
+    toast(`Conta de ${email} restaurada.`, 'success');
+    await carregarUsuarios();
+  } catch (e) { toast('Erro ao restaurar usuário.', 'error'); }
 };
 
 window.enviarResetSenha = async (email) => {
@@ -991,6 +1063,8 @@ const ACOES_LABEL = {
   usuario_cadastrado:  { icon: '👤', label: 'Usuário cadastrado',       cor: 'var(--cor-aprovado)' },
   usuario_inativado:   { icon: '🔒', label: 'Usuário inativado',        cor: 'var(--cor-reprovado)' },
   usuario_ativado:     { icon: '🔓', label: 'Usuário ativado',          cor: 'var(--cor-aprovado)' },
+  usuario_removido:    { icon: '🗑️', label: 'Usuário removido',         cor: 'var(--cor-reprovado)' },
+  usuario_restaurado:  { icon: '♻️', label: 'Usuário restaurado',       cor: 'var(--cor-aprovado)' },
   checklist_excluido:  { icon: '🗑️', label: 'Checklist excluído',       cor: 'var(--cor-reprovado)' },
   senha_reset_enviada: { icon: '🔑', label: 'Reset de senha enviado',   cor: 'var(--cor-alerta)' },
 };
@@ -1045,7 +1119,7 @@ function aplicarFiltrosAuditoria() {
   const CATEGORIAS = {
     placa:       ['placa_cadastrada','placa_editada','placa_inativada','placa_ativada'],
     item:        ['item_cadastrado','item_editado','item_inativado','item_reativado'],
-    usuario:     ['usuario_cadastrado','usuario_inativado','usuario_ativado'],
+    usuario:     ['usuario_cadastrado','usuario_inativado','usuario_ativado','usuario_removido','usuario_restaurado'],
     checklist:   ['checklist_excluido'],
     senha:       ['senha_reset_enviada'],
   };
